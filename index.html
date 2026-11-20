@@ -25,7 +25,7 @@
     padding-top:calc(15px + env(safe-area-inset-top));
   }
   header h1{margin:0;font-size:15px;font-weight:500;letter-spacing:.2em}
-  .tabs{display:flex;gap:20px}
+  .tabs{display:flex;gap:16px}
   .tab{font:inherit;font-size:13px;color:var(--sub);letter-spacing:.1em;background:none;border:0;padding:0}
   .tab.on{color:var(--ink)}
   main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
@@ -90,6 +90,13 @@
   .item{display:flex;gap:12px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--line)}
   .item .txt{flex:1;line-height:1.65;word-break:break-word}
   .item button{font:inherit;font-size:12px;color:var(--sub);background:none;border:0;padding:2px 0;flex:none}
+  .win{padding:14px 0;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center}
+  .win .txt{flex:1;min-width:0}
+  .win .name{line-height:1.5;word-break:break-word}
+  .win .sub{font-size:11px;color:var(--sub);margin-top:4px;letter-spacing:.04em}
+  .win.on .name{font-weight:500}
+  .win .acts{display:flex;flex-direction:column;gap:6px;flex:none}
+  .win .acts button{font:inherit;font-size:12px;color:var(--sub);background:none;border:0;padding:2px 0}
   .row{margin-bottom:16px}
   .row label{display:block;font-size:12px;color:var(--sub);letter-spacing:.06em;margin-bottom:7px}
   .row input,.row textarea{
@@ -121,6 +128,7 @@
   <h1 id="brand">归舟</h1>
   <nav class="tabs">
     <button class="tab on" data-page="chat">对话</button>
+    <button class="tab" data-page="win">窗口</button>
     <button class="tab" data-page="mem">记忆</button>
     <button class="tab" data-page="set">设置</button>
   </nav>
@@ -129,8 +137,14 @@
 <main>
   <section class="page on" id="page-chat"><div id="msgs"></div></section>
 
+  <section class="page" id="page-win">
+    <p class="hint">每个窗口自己一段对话，互不干扰。一个聊长了就换下一个，不用清掉旧的。</p>
+    <div class="btns"><button class="btn solid" id="winnew">新建一个窗口</button></div>
+    <div id="winlist" style="margin-top:22px"></div>
+  </section>
+
   <section class="page" id="page-mem">
-    <p class="hint">一条一句。每次发消息前，这些会全部放在系统提示里给我，也挂在编号上，我自己能加、能改、能删。</p>
+    <p class="hint">一条一句。每次发消息前，这些会全部放在系统提示里给我，也挂在编号上，我自己能加、能改、能删。记忆是所有窗口共用的。</p>
     <div id="memlist"></div>
     <div class="row" style="margin-top:20px">
       <label>加一条</label>
@@ -190,7 +204,7 @@
     <div class="btns">
       <button class="btn solid" id="save">存起来</button>
       <button class="btn" id="reload">重新加载这一版</button>
-      <button class="btn" id="clear">清空对话</button>
+      <button class="btn" id="clear">清空这个窗口</button>
     </div>
     <p class="hint" style="margin-top:22px">密钥只存在这台手机的浏览器里，不上传任何地方。标题双击也能刷新。</p>
   </section>
@@ -217,7 +231,7 @@
 (function () {
   'use strict';
 
-  var LS = { cfg: 'gz_cfg_v1', mem: 'gz_mem_v1', chat: 'gz_chat_v1', total: 'gz_total_v1' };
+  var LS = { cfg: 'gz_cfg_v1', mem: 'gz_mem_v1', sessions: 'gz_sessions_v1', cur: 'gz_cur_v1', oldchat: 'gz_chat_v1', oldtotal: 'gz_total_v1' };
   var SYS_VERSION = 3;
 
   var DEFAULT_SYS = [
@@ -298,7 +312,8 @@
     catch (e) { return d; }
   }
   function save(k, v) {
-    try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {}
+    try { localStorage.setItem(k, JSON.stringify(v)); return true; }
+    catch (e) { return false; }
   }
 
   var cfg = load(LS.cfg, { url: DEFAULT_URL, key: '', model: 'deepseek-chat', vUrl: '', vKey: '', vModel: '' });
@@ -312,8 +327,49 @@
   }
 
   var mem = load(LS.mem, []);
-  var history = load(LS.chat, []);
-  var total = load(LS.total, 0);
+
+  function nid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+  var sessions = load(LS.sessions, null);
+  if (!sessions || !sessions.length) {
+    var oldMsgs = load(LS.oldchat, []);
+    var oldTotal = load(LS.oldtotal, 0);
+    sessions = [{ id: nid(), title: '', msgs: oldMsgs || [], total: oldTotal || 0, t: Date.now() }];
+  }
+
+  var curId = load(LS.cur, sessions[0].id);
+  var found = false;
+  for (var si = 0; si < sessions.length; si++) { if (sessions[si].id === curId) { found = true; break; } }
+  if (!found) curId = sessions[0].id;
+
+  var history = [];
+  var total = 0;
+
+  function curSess() {
+    for (var i = 0; i < sessions.length; i++) if (sessions[i].id === curId) return sessions[i];
+    return sessions[0];
+  }
+
+  function pullSession() {
+    var s = curSess();
+    history = s.msgs || [];
+    total = s.total || 0;
+  }
+
+  function pushSession() {
+    var s = curSess();
+    s.msgs = history;
+    s.total = total;
+    s.t = Date.now();
+    var first = null;
+    for (var i = 0; i < history.length; i++) { if (history[i].role === 'user') { first = history[i]; break; } }
+    s.title = first ? String(first.content).replace(/\s+/g, ' ').slice(0, 18) : '空窗口';
+    var ok = save(LS.sessions, sessions);
+    save(LS.cur, curId);
+    if (!ok) toast('存不下了，去窗口列表删几个旧的');
+  }
+
+  pullSession();
 
   var pending = { img: '', fileName: '', fileText: '' };
 
@@ -334,6 +390,7 @@
       showPage(btn.dataset.page);
       if (btn.dataset.page === 'mem') renderMem();
       if (btn.dataset.page === 'set') fillSettings();
+      if (btn.dataset.page === 'win') renderWins();
       if (btn.dataset.page === 'chat') scrollBottom();
     });
   });
@@ -393,6 +450,75 @@
     });
     scrollBottom();
   }
+
+  function renderWins() {
+    var box = $('winlist');
+    box.innerHTML = '';
+    var list = sessions.slice().sort(function (a, b) { return (b.t || 0) - (a.t || 0); });
+    list.forEach(function (s) {
+      var d = document.createElement('div');
+      d.className = 'win' + (s.id === curId ? ' on' : '');
+
+      var t = document.createElement('div');
+      t.className = 'txt';
+      var n = document.createElement('div');
+      n.className = 'name';
+      n.textContent = s.title || '空窗口';
+      var sub = document.createElement('div');
+      sub.className = 'sub';
+      sub.textContent = ((s.msgs || []).length) + ' 条 · ' + (s.total || 0).toLocaleString('en-US') + ' tokens' + (s.id === curId ? ' · 正在用' : '');
+      t.appendChild(n);
+      t.appendChild(sub);
+
+      var acts = document.createElement('div');
+      acts.className = 'acts';
+
+      var open = document.createElement('button');
+      open.textContent = s.id === curId ? '就是它' : '打开';
+      open.addEventListener('click', function () { switchSession(s.id); });
+      acts.appendChild(open);
+
+      var del = document.createElement('button');
+      del.textContent = '删';
+      del.addEventListener('click', function () {
+        if (!confirm('删掉这个窗口？对话就没了，记忆不动。')) return;
+        for (var i = 0; i < sessions.length; i++) {
+          if (sessions[i].id === s.id) { sessions.splice(i, 1); break; }
+        }
+        if (!sessions.length) sessions.push({ id: nid(), title: '', msgs: [], total: 0, t: Date.now() });
+        if (curId === s.id) { curId = sessions[0].id; pullSession(); renderChat(); }
+        pushSession();
+        renderWins();
+      });
+      acts.appendChild(del);
+
+      d.appendChild(t);
+      d.appendChild(acts);
+      box.appendChild(d);
+    });
+  }
+
+  function switchSession(id) {
+    if (controller) controller.abort();
+    pushSession();
+    curId = id;
+    pullSession();
+    renderChat();
+    showPage('chat');
+    toast('换过来了');
+  }
+
+  $('winnew').addEventListener('click', function () {
+    if (controller) controller.abort();
+    pushSession();
+    var s = { id: nid(), title: '', msgs: [], total: 0, t: Date.now() };
+    sessions.push(s);
+    curId = s.id;
+    pullSession();
+    renderChat();
+    showPage('chat');
+    toast('新窗口，干净的');
+  });
 
   function scrollBottom() { mainEl.scrollTop = mainEl.scrollHeight; }
 
@@ -644,7 +770,6 @@
         var info = null;
         if (usageTotal !== null) {
           total += usageTotal;
-          save(LS.total, total);
           info = usageTotal;
           addMeta(aEl.root, tokenLine(info));
         } else {
@@ -656,7 +781,7 @@
       }
 
       slimHistory();
-      save(LS.chat, history);
+      pushSession();
 
     } catch (err) {
       caret.remove();
@@ -665,12 +790,12 @@
           aEl.txt.textContent = acc;
           history.push({ role: 'assistant', content: acc });
           slimHistory();
-          save(LS.chat, history);
+          pushSession();
           addMeta(aEl.root, '已停止');
         } else {
           aEl.root.remove();
           history.pop();
-          save(LS.chat, history);
+          pushSession();
         }
       } else {
         aEl.txt.textContent = '出错了：' + err.message;
@@ -926,11 +1051,10 @@
   });
 
   $('clear').addEventListener('click', function () {
-    if (!confirm('清空对话？记忆不动。')) return;
+    if (!confirm('清空这个窗口？其他窗口和记忆都不动。')) return;
     history = [];
     total = 0;
-    save(LS.chat, history);
-    save(LS.total, total);
+    pushSession();
     renderChat();
     showPage('chat');
     toast('清空了');
@@ -1001,6 +1125,7 @@
   renderChat();
   fillSettings();
   renderMem();
+  renderWins();
   renderChips();
   autoGrow();
 
