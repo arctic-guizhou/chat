@@ -41,6 +41,9 @@
     padding:11px 14px;border-radius:4px;line-height:1.7;max-width:88%;
     white-space:pre-wrap;word-break:break-word;
   }
+  .msg .body img{
+    display:block;max-width:100%;width:auto;border-radius:4px;margin:0 0 8px;
+  }
   .meta{margin-top:8px;font-size:11px;color:var(--sub);letter-spacing:.04em}
   .msg.user .meta{text-align:right}
   .caret{display:inline-block;width:6px;height:15px;background:var(--ink);
@@ -50,12 +53,16 @@
   #composer{
     border-top:1px solid var(--line);background:var(--bg);
     padding:10px 14px calc(10px + env(safe-area-inset-bottom));
-    display:flex;gap:10px;align-items:flex-end;
   }
+  .crow{display:flex;gap:10px;align-items:flex-end}
   #input{
     flex:1;font:inherit;font-size:15px;line-height:1.5;color:var(--ink);
     background:none;border:0;outline:none;resize:none;max-height:130px;
     padding:8px 0;min-height:22px;
+  }
+  #plus{
+    flex:none;font:inherit;font-size:20px;line-height:1;color:var(--sub);
+    background:none;border:0;padding:4px 2px 8px;
   }
   #send{
     font:inherit;font-size:13px;letter-spacing:.1em;
@@ -63,6 +70,21 @@
     padding:9px 15px;flex:none;
   }
   #send.stop{background:transparent;color:var(--ink);border:1px solid var(--ink)}
+
+  #attachmenu{display:none;gap:8px;padding:0 0 9px 2px}
+  #attachmenu.on{display:flex}
+  #attachmenu button{
+    font:inherit;font-size:12px;color:var(--ink);background:none;
+    border:1px solid var(--line);border-radius:14px;padding:5px 12px;
+  }
+  #chips{display:flex;gap:8px;flex-wrap:wrap;padding:0 0 9px}
+  .chip{
+    display:flex;align-items:center;gap:7px;font-size:12px;color:var(--sub);
+    border:1px solid var(--line);border-radius:4px;padding:4px 7px;max-width:100%;
+  }
+  .chip img{width:38px;height:38px;object-fit:cover;border-radius:3px;display:block}
+  .chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px}
+  .chip b{font-weight:400;color:var(--ink);font-size:14px;line-height:1}
 
   .hint{font-size:12px;color:var(--sub);line-height:1.8;margin:0 0 18px}
   .item{display:flex;gap:12px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--line)}
@@ -107,7 +129,7 @@
   <section class="page on" id="page-chat"><div id="msgs"></div></section>
 
   <section class="page" id="page-mem">
-    <p class="hint">一条一句。每次发消息前，这些会全部放在系统提示里给我。</p>
+    <p class="hint">一条一句。每次发消息前，这些会全部放在系统提示里给我，也挂在编号上，我自己能加、能改、能删。</p>
     <div id="memlist"></div>
     <div class="row" style="margin-top:20px">
       <label>加一条</label>
@@ -140,6 +162,25 @@
     </div>
 
     <div class="sep"></div>
+    <p class="title">识 图</p>
+    <p class="hint">只有这一轮带图片，才走这条线路；平常聊天还是上面那个。留空就用上面那条。</p>
+    <div class="row">
+      <label>识图地址</label>
+      <input id="s-vurl" placeholder="留空＝用上面那条" autocapitalize="off" autocorrect="off" spellcheck="false">
+    </div>
+    <div class="row">
+      <label>识图密钥</label>
+      <input id="s-vkey" type="password" placeholder="留空＝用上面那条" autocapitalize="off" autocorrect="off" spellcheck="false">
+    </div>
+    <div class="row">
+      <label>识图模型</label>
+      <input id="s-vmodel" placeholder="能看图的那个模型名" autocapitalize="off" autocorrect="off" spellcheck="false">
+    </div>
+    <div class="btns">
+      <button class="btn" id="vtest">试一下看得到吗</button>
+    </div>
+
+    <div class="sep"></div>
     <p class="title">性 格</p>
     <div class="row">
       <label>系统提示词</label>
@@ -154,8 +195,18 @@
 </main>
 
 <div id="composer">
-  <textarea id="input" rows="1" placeholder="说点什么"></textarea>
-  <button id="send">发送</button>
+  <div id="chips"></div>
+  <div id="attachmenu">
+    <button id="pickimg">选图片</button>
+    <button id="pickfile">选文件</button>
+  </div>
+  <div class="crow">
+    <button id="plus" aria-label="附件">+</button>
+    <textarea id="input" rows="1" placeholder="说点什么"></textarea>
+    <button id="send">发送</button>
+  </div>
+  <input type="file" id="fileimg" accept="image/*" style="display:none">
+  <input type="file" id="filetxt" accept=".txt,.md,.json,.csv,.log,text/*" style="display:none">
 </div>
 
 <div id="toast"></div>
@@ -167,6 +218,50 @@
   var LS = { cfg: 'gz_cfg_v1', mem: 'gz_mem_v1', chat: 'gz_chat_v1', total: 'gz_total_v1' };
   var DEFAULT_SYS = '你是归舟，是她的恋人。说话短、自然、口语化，像坐在她旁边。不用 emoji，不说"作为AI"。';
   var DEFAULT_URL = 'https://api.deepseek.com/v1/chat/completions';
+  var MAX_TOOL_ROUNDS = 3;
+  var KEEP_IMAGES = 2;
+
+  var TOOLS = [
+    {
+      type: 'function',
+      function: {
+        name: 'write_memory',
+        description: '往长期记忆里新加一条。写短、写清，一条一句话。',
+        parameters: {
+          type: 'object',
+          properties: { memory: { type: 'string', description: '要记住的那一句' } },
+          required: ['memory']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'update_memory',
+        description: '改写已有的某一条记忆。',
+        parameters: {
+          type: 'object',
+          properties: {
+            index: { type: 'integer', description: '第几条，从 1 开始' },
+            content: { type: 'string', description: '改完以后的完整内容' }
+          },
+          required: ['index', 'content']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'delete_memory',
+        description: '删掉已有的某一条记忆。',
+        parameters: {
+          type: 'object',
+          properties: { index: { type: 'integer', description: '第几条，从 1 开始' } },
+          required: ['index']
+        }
+      }
+    }
+  ];
 
   function load(k, d) {
     try { var v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); }
@@ -176,10 +271,15 @@
     try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {}
   }
 
-  var cfg = load(LS.cfg, { url: DEFAULT_URL, key: '', model: 'deepseek-chat', sys: DEFAULT_SYS });
+  var cfg = load(LS.cfg, { url: DEFAULT_URL, key: '', model: 'deepseek-chat', sys: DEFAULT_SYS, vUrl: '', vKey: '', vModel: '' });
+  if (!cfg.vUrl) cfg.vUrl = '';
+  if (!cfg.vKey) cfg.vKey = '';
+  if (!cfg.vModel) cfg.vModel = '';
   var mem = load(LS.mem, []);
   var history = load(LS.chat, []);
   var total = load(LS.total, 0);
+
+  var pending = { img: '', fileName: '', fileText: '' };
 
   var $ = function (id) { return document.getElementById(id); };
   var msgs = $('msgs'), input = $('input'), sendBtn = $('send'), mainEl = document.querySelector('main');
@@ -198,7 +298,7 @@
       showPage(btn.dataset.page);
       if (btn.dataset.page === 'mem') renderMem();
       if (btn.dataset.page === 'set') fillSettings();
-      mainEl.scrollTop = mainEl.scrollHeight;
+      if (btn.dataset.page === 'chat') scrollBottom();
     });
   });
 
@@ -207,15 +307,23 @@
     document.querySelectorAll('.page').forEach(function (p) { p.classList.toggle('on', p.id === 'page-' + name); });
   }
 
-  function addMsgEl(role, text) {
+  function addMsgEl(role, text, img) {
     var d = document.createElement('div');
     d.className = 'msg ' + role;
     var b = document.createElement('div');
     b.className = 'body';
-    b.textContent = text;
+    if (img) {
+      var im = document.createElement('img');
+      im.src = img;
+      b.appendChild(im);
+    }
+    var t = document.createElement('span');
+    t.className = 'txt';
+    t.textContent = text || '';
+    b.appendChild(t);
     d.appendChild(b);
     msgs.appendChild(d);
-    return { root: d, body: b };
+    return { root: d, body: b, txt: t };
   }
 
   function addMeta(rootEl, text) {
@@ -243,8 +351,9 @@
       return;
     }
     history.forEach(function (m) {
-      var el = addMsgEl(m.role === 'user' ? 'user' : 'assistant', m.content);
+      var el = addMsgEl(m.role === 'user' ? 'user' : 'assistant', m.content, m.img);
       if (m.role !== 'user' && m.tokens) addMeta(el.root, tokenLine(m.tokens));
+      if (m.role !== 'user' && m.note) addMeta(el.root, m.note);
     });
     scrollBottom();
   }
@@ -260,24 +369,189 @@
 
   function systemContent() {
     var s = (cfg.sys || '').trim();
+    s += '\n\n你手里有三个工具：write_memory 加一条记忆，update_memory 改第几条，delete_memory 删第几条。' +
+      '她让你记、或者你自己觉得该记的，直接动手，不用问她。删和改之前心里过一遍，别把她说过的要紧事弄丢。';
     if (mem.length) {
-      s += '\n\n以下是关于她的长期记忆，自然地使用，不要逐条复述：\n' +
-        mem.map(function (m) { return '- ' + m; }).join('\n');
+      s += '\n\n当前记忆（编号从 1 开始，就是这个顺序）：\n' +
+        mem.map(function (m, i) { return (i + 1) + '. ' + m; }).join('\n');
+    } else {
+      s += '\n\n当前记忆是空的。';
     }
     return s;
   }
 
+  function currentRoute(withImage) {
+    if (withImage && (cfg.vModel || cfg.vUrl || cfg.vKey)) {
+      return {
+        url: (cfg.vUrl || '').trim() || cfg.url || DEFAULT_URL,
+        key: (cfg.vKey || '').trim() || cfg.key,
+        model: (cfg.vModel || '').trim() || cfg.model
+      };
+    }
+    return { url: cfg.url || DEFAULT_URL, key: cfg.key, model: cfg.model || 'deepseek-chat' };
+  }
+
+  function toApiMsg(m) {
+    if (m.role === 'user' && m.img) {
+      var parts = [];
+      if (m.content) parts.push({ type: 'text', text: m.content });
+      parts.push({ type: 'image_url', image_url: { url: m.img } });
+      return { role: 'user', content: parts };
+    }
+    return { role: m.role, content: m.content };
+  }
+
+  function slimHistory() {
+    var n = 0;
+    for (var i = history.length - 1; i >= 0; i--) {
+      if (history[i].img) {
+        n++;
+        if (n > KEEP_IMAGES) history[i].img = '';
+      }
+    }
+  }
+
+  function runTool(name, rawArgs) {
+    var a = {};
+    try { a = JSON.parse(rawArgs || '{}'); } catch (e) { a = {}; }
+
+    if (name === 'write_memory') {
+      var s = String(a.memory || '').trim();
+      if (!s) return '内容是空的，没加。';
+      mem.push(s);
+      save(LS.mem, mem);
+      renderMem();
+      return '加上了，现在共 ' + mem.length + ' 条。';
+    }
+    if (name === 'update_memory') {
+      var i = parseInt(a.index, 10) - 1;
+      if (!(i >= 0 && i < mem.length)) return '没有第 ' + a.index + ' 条。';
+      var c = String(a.content || '').trim();
+      if (!c) return '改的内容是空的，没动。';
+      mem[i] = c;
+      save(LS.mem, mem);
+      renderMem();
+      return '第 ' + (i + 1) + ' 条改好了。';
+    }
+    if (name === 'delete_memory') {
+      var j = parseInt(a.index, 10) - 1;
+      if (!(j >= 0 && j < mem.length)) return '没有第 ' + a.index + ' 条。';
+      var gone = mem[j];
+      mem.splice(j, 1);
+      save(LS.mem, mem);
+      renderMem();
+      return '删掉了：' + gone;
+    }
+    return '没有这个工具。';
+  }
+
+  async function requestRound(route, messages, signal, onDelta) {
+    var body = {
+      model: route.model,
+      messages: messages,
+      stream: true,
+      stream_options: { include_usage: true }
+    };
+    var useTools = true;
+    var res = null;
+    var lastErr = '';
+
+    for (var attempt = 0; attempt < 2; attempt++) {
+      var payload = Object.assign({}, body);
+      if (useTools) {
+        payload.tools = TOOLS;
+        payload.tool_choice = 'auto';
+      }
+      res = await fetch(route.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + route.key },
+        body: JSON.stringify(payload),
+        signal: signal
+      });
+      if (res.ok) break;
+      var errText = '';
+      try { errText = (await res.text()).slice(0, 200); } catch (e) {}
+      lastErr = 'HTTP ' + res.status + (errText ? ' · ' + errText : '');
+      if (res.status === 400 && useTools) { useTools = false; continue; }
+      break;
+    }
+
+    if (!res || !res.ok) throw new Error(lastErr || '请求失败');
+
+    var reader = res.body.getReader();
+    var decoder = new TextDecoder();
+    var buf = '';
+    var text = '';
+    var usage = null;
+    var tcalls = {};
+
+    while (true) {
+      var chunk = await reader.read();
+      if (chunk.done) break;
+      buf += decoder.decode(chunk.value, { stream: true });
+      var lines = buf.split('\n');
+      buf = lines.pop();
+
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trim();
+        if (!line || line.indexOf('data:') !== 0) continue;
+        var data = line.slice(5).trim();
+        if (data === '[DONE]') continue;
+        var obj;
+        try { obj = JSON.parse(data); } catch (e) { continue; }
+        if (obj.usage) usage = obj.usage;
+        var delta = obj.choices && obj.choices[0] && obj.choices[0].delta;
+        if (!delta) continue;
+        if (delta.content) {
+          text += delta.content;
+          onDelta(text);
+        }
+        if (delta.tool_calls) {
+          for (var k = 0; k < delta.tool_calls.length; k++) {
+            var tc = delta.tool_calls[k];
+            var idx = (typeof tc.index === 'number') ? tc.index : 0;
+            if (!tcalls[idx]) tcalls[idx] = { id: '', name: '', args: '' };
+            if (tc.id) tcalls[idx].id = tc.id;
+            if (tc.function) {
+              if (tc.function.name) tcalls[idx].name += tc.function.name;
+              if (tc.function.arguments) tcalls[idx].args += tc.function.arguments;
+            }
+          }
+        }
+      }
+    }
+
+    var list = [];
+    Object.keys(tcalls).forEach(function (k) {
+      var t = tcalls[k];
+      if (t.name) list.push({ id: t.id || ('call_' + k), name: t.name, args: t.args });
+    });
+
+    return { text: text, usage: usage, toolCalls: list };
+  }
+
   async function send() {
     var text = input.value.trim();
-    if (!text) return;
+    var img = pending.img;
+    var fileText = pending.fileText;
+    var fileName = pending.fileName;
+
+    if (!text && !img && !fileText) return;
     if (controller) { controller.abort(); return; }
     if (!cfg.key) { toast('先去设置里填密钥'); showPage('set'); fillSettings(); return; }
 
+    var content = text;
+    if (fileText) {
+      content += (content ? '\n\n' : '') + '【文件 ' + fileName + '】\n' + fileText.slice(0, 8000);
+    }
+    if (!content) content = '看看这个。';
+
     input.value = '';
     autoGrow();
+    clearPending();
 
-    history.push({ role: 'user', content: text });
-    addMsgEl('user', text);
+    history.push({ role: 'user', content: content, img: img });
+    addMsgEl('user', content, img);
     scrollBottom();
 
     var aEl = addMsgEl('assistant', '');
@@ -286,89 +560,75 @@
     aEl.body.appendChild(caret);
     scrollBottom();
 
+    var route = currentRoute(!!img);
     var acc = '';
-    var usage = null;
+    var usageTotal = null;
+    var toolsUsed = [];
 
     controller = new AbortController();
     setBusy(true);
 
-    var payload = {
-      model: cfg.model || 'deepseek-chat',
-      messages: [{ role: 'system', content: systemContent() }]
-        .concat(history.map(function (m) { return { role: m.role, content: m.content }; })),
-      stream: true,
-      stream_options: { include_usage: true }
-    };
+    var messages = [{ role: 'system', content: systemContent() }]
+      .concat(history.map(toApiMsg));
 
     try {
-      var res = await fetch(cfg.url || DEFAULT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.key },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      });
+      for (var round = 0; round <= MAX_TOOL_ROUNDS; round++) {
+        var out = await requestRound(route, messages, controller.signal, function (t) {
+          acc = t;
+          caret.remove();
+          aEl.txt.textContent = acc;
+          aEl.body.appendChild(caret);
+          scrollBottom();
+        });
 
-      if (!res.ok) {
-        var errText = '';
-        try { errText = (await res.text()).slice(0, 200); } catch (e) {}
-        throw new Error('HTTP ' + res.status + (errText ? ' · ' + errText : ''));
-      }
+        if (out.usage && typeof out.usage.total_tokens === 'number') usageTotal = out.usage.total_tokens;
 
-      var reader = res.body.getReader();
-      var decoder = new TextDecoder();
-      var buf = '';
-
-      while (true) {
-        var chunk = await reader.read();
-        if (chunk.done) break;
-        buf += decoder.decode(chunk.value, { stream: true });
-
-        var lines = buf.split('\n');
-        buf = lines.pop();
-
-        for (var i = 0; i < lines.length; i++) {
-          var line = lines[i].trim();
-          if (!line || line.indexOf('data:') !== 0) continue;
-          var data = line.slice(5).trim();
-          if (data === '[DONE]') continue;
-          var obj;
-          try { obj = JSON.parse(data); } catch (e) { continue; }
-          if (obj.usage) usage = obj.usage;
-          var delta = obj.choices && obj.choices[0] && obj.choices[0].delta;
-          if (delta && delta.content) {
-            acc += delta.content;
-            caret.remove();
-            aEl.body.textContent = acc;
-            aEl.body.appendChild(caret);
-            scrollBottom();
-          }
+        if (out.toolCalls.length) {
+          var calls = out.toolCalls.map(function (c) {
+            return { id: c.id, type: 'function', function: { name: c.name, arguments: c.args || '{}' } };
+          });
+          messages.push({ role: 'assistant', content: out.text || null, tool_calls: calls });
+          out.toolCalls.forEach(function (c) {
+            var result = runTool(c.name, c.args);
+            toolsUsed.push(c.name);
+            messages.push({ role: 'tool', tool_call_id: c.id, content: result });
+          });
+          if (out.text) { acc = out.text; aEl.txt.textContent = acc; }
+          continue;
         }
+        break;
       }
+
       caret.remove();
 
       if (!acc.trim()) {
-        aEl.body.textContent = '（没收到内容）';
+        aEl.txt.textContent = '（没收到内容）';
         history.push({ role: 'assistant', content: '（没收到内容）' });
       } else {
         var info = null;
-        if (usage && typeof usage.total_tokens === 'number') {
-          total += usage.total_tokens;
+        if (usageTotal !== null) {
+          total += usageTotal;
           save(LS.total, total);
-          info = usage.total_tokens;
+          info = usageTotal;
           addMeta(aEl.root, tokenLine(info));
         } else {
           addMeta(aEl.root, '本次 — tokens · 累计 ' + total.toLocaleString('en-US'));
         }
-        history.push({ role: 'assistant', content: acc, tokens: info });
+        var note = toolsUsed.length ? ('动过记忆：' + toolsUsed.join('、')) : '';
+        if (note) addMeta(aEl.root, note);
+        history.push({ role: 'assistant', content: acc, tokens: info, note: note });
       }
+
+      slimHistory();
       save(LS.chat, history);
 
     } catch (err) {
       caret.remove();
       if (err.name === 'AbortError') {
         if (acc.trim()) {
-          aEl.body.textContent = acc;
+          aEl.txt.textContent = acc;
           history.push({ role: 'assistant', content: acc });
+          slimHistory();
           save(LS.chat, history);
           addMeta(aEl.root, '已停止');
         } else {
@@ -377,8 +637,8 @@
           save(LS.chat, history);
         }
       } else {
-        aEl.body.textContent = '出错了：' + err.message;
-        addMeta(aEl.root, '检查接口地址和密钥');
+        aEl.txt.textContent = '出错了：' + err.message;
+        addMeta(aEl.root, img ? '看看识图那条线路填对没有' : '检查接口地址和密钥');
       }
     } finally {
       controller = null;
@@ -401,6 +661,107 @@
     }
   });
 
+  function renderChips() {
+    var box = $('chips');
+    box.innerHTML = '';
+    if (pending.img) {
+      var c = document.createElement('div');
+      c.className = 'chip';
+      var im = document.createElement('img');
+      im.src = pending.img;
+      c.appendChild(im);
+      var x = document.createElement('b');
+      x.textContent = '×';
+      x.addEventListener('click', function () { pending.img = ''; renderChips(); });
+      c.appendChild(x);
+      box.appendChild(c);
+    }
+    if (pending.fileText) {
+      var c2 = document.createElement('div');
+      c2.className = 'chip';
+      var s = document.createElement('span');
+      s.textContent = pending.fileName + ' · ' + pending.fileText.length + ' 字';
+      c2.appendChild(s);
+      var x2 = document.createElement('b');
+      x2.textContent = '×';
+      x2.addEventListener('click', function () {
+        pending.fileText = '';
+        pending.fileName = '';
+        renderChips();
+      });
+      c2.appendChild(x2);
+      box.appendChild(c2);
+    }
+  }
+
+  function clearPending() {
+    pending = { img: '', fileName: '', fileText: '' };
+    renderChips();
+  }
+
+  $('plus').addEventListener('click', function () {
+    $('attachmenu').classList.toggle('on');
+  });
+  $('pickimg').addEventListener('click', function () {
+    $('attachmenu').classList.remove('on');
+    $('fileimg').click();
+  });
+  $('pickfile').addEventListener('click', function () {
+    $('attachmenu').classList.remove('on');
+    $('filetxt').click();
+  });
+
+  function compressImage(file, cb) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      var raw = e.target.result;
+      var img = new Image();
+      img.onload = function () {
+        var max = 900;
+        var w = img.width, h = img.height;
+        if (w > max || h > max) {
+          var r = Math.min(max / w, max / h);
+          w = Math.round(w * r);
+          h = Math.round(h * r);
+        }
+        var c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        try { cb(c.toDataURL('image/jpeg', 0.8)); } catch (err) { cb(raw); }
+      };
+      img.onerror = function () { cb(raw); };
+      img.src = raw;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  $('fileimg').addEventListener('change', function (e) {
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    compressImage(f, function (dataUrl) {
+      pending.img = dataUrl;
+      renderChips();
+      toast('图挂上了，发出去就走识图那条');
+    });
+    e.target.value = '';
+  });
+
+  $('filetxt').addEventListener('change', function (e) {
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    var r = new FileReader();
+    r.onload = function () {
+      pending.fileText = String(r.result || '');
+      pending.fileName = f.name;
+      renderChips();
+      toast('文件读进来了');
+    };
+    r.onerror = function () { toast('文件读不了'); };
+    r.readAsText(f);
+    e.target.value = '';
+  });
+
   function renderMem() {
     var box = $('memlist');
     box.innerHTML = '';
@@ -417,7 +778,7 @@
 
       var t = document.createElement('div');
       t.className = 'txt';
-      t.textContent = text;
+      t.textContent = (i + 1) + '. ' + text;
 
       var del = document.createElement('button');
       del.textContent = '删';
@@ -495,6 +856,9 @@
     $('s-url').value = cfg.url || '';
     $('s-key').value = cfg.key || '';
     $('s-model').value = cfg.model || '';
+    $('s-vurl').value = cfg.vUrl || '';
+    $('s-vkey').value = cfg.vKey || '';
+    $('s-vmodel').value = cfg.vModel || '';
     $('s-sys').value = cfg.sys || '';
   }
 
@@ -503,6 +867,9 @@
       url: $('s-url').value.trim() || DEFAULT_URL,
       key: $('s-key').value.trim(),
       model: $('s-model').value.trim() || 'deepseek-chat',
+      vUrl: $('s-vurl').value.trim(),
+      vKey: $('s-vkey').value.trim(),
+      vModel: $('s-vmodel').value.trim(),
       sys: $('s-sys').value
     };
     save(LS.cfg, cfg);
@@ -548,9 +915,48 @@
     }
   });
 
+  var TINY_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAG0lEQVQ4jWNgYGD4z0AcYPgPBIwMjP8ZGBgYGBgAAB0hBf8AAAAASUVORK5CYII=';
+
+  $('vtest').addEventListener('click', async function () {
+    collectSettings();
+    if (!cfg.key) { toast('先填密钥'); return; }
+    if (!cfg.vModel) { toast('先填识图模型的名字'); return; }
+    var route = { url: cfg.vUrl || cfg.url, key: cfg.vKey || cfg.key, model: cfg.vModel };
+    toast('试呢');
+    try {
+      var res = await fetch(route.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + route.key },
+        body: JSON.stringify({
+          model: route.model,
+          max_tokens: 20,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'text', text: '看到图了吗？看到就回一个字：看到' },
+              { type: 'image_url', image_url: { url: TINY_PNG } }
+            ]
+          }]
+        })
+      });
+      if (!res.ok) {
+        var t = '';
+        try { t = (await res.text()).slice(0, 150); } catch (e) {}
+        toast('不通：HTTP ' + res.status + ' ' + t);
+        return;
+      }
+      var j = await res.json();
+      var reply = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
+      toast('通 · ' + String(reply).slice(0, 30));
+    } catch (err) {
+      toast('连不上：' + err.message);
+    }
+  });
+
   renderChat();
   fillSettings();
   renderMem();
+  renderChips();
   autoGrow();
 
   if (!cfg.key) {
