@@ -160,21 +160,7 @@ window.addEventListener('unhandledrejection', function (e) {
 })();
 </script>
 
-<script>
-(function () {
-  var tabs = document.getElementById('tabs');
-  var btn = document.getElementById('moreBtn');
-  if (!tabs || !btn) return;
-  function shut() { tabs.classList.remove('open'); btn.textContent = '⋯'; }
-  btn.addEventListener('click', function () {
-    var open = tabs.classList.toggle('open');
-    btn.textContent = open ? '×' : '⋯';
-  });
-  tabs.addEventListener('click', function (e) {
-    if (e.target && e.target.classList && e.target.classList.contains('more-tab')) shut();
-  });
-})();
-</script>
+<script src="ui.js"></script>
 
 <script src="app.js"></script>
 </body>
