@@ -111,6 +111,7 @@
     border:1px solid var(--ink);background:none;color:var(--ink);border-radius:4px;
   }
   .btn.solid{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .btn[disabled]{opacity:.45}
   .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
   .sep{height:1px;background:var(--line);margin:26px 0}
   .title{font-size:12px;letter-spacing:.16em;color:var(--sub);margin:0 0 14px}
@@ -138,7 +139,7 @@
   <section class="page on" id="page-chat"><div id="msgs"></div></section>
 
   <section class="page" id="page-win">
-    <p class="hint">每个窗口自己一段对话，互不干扰。一个聊长了就换下一个，不用清掉旧的。</p>
+    <p class="hint">每个窗口自己一段对话，互不干扰。点新建的时候，会先把手上这个窗口扫一遍，值得留的变成记忆条目，然后再给你一个干净的。</p>
     <div class="btns"><button class="btn solid" id="winnew">新建一个窗口</button></div>
     <div id="winlist" style="margin-top:22px"></div>
   </section>
@@ -264,6 +265,7 @@
   var DEFAULT_URL = 'https://api.deepseek.com/v1/chat/completions';
   var MAX_TOOL_ROUNDS = 3;
   var KEEP_IMAGES = 2;
+  var CONDENSE_MAX = 5;
 
   var TOOLS = [
     {
@@ -508,18 +510,6 @@
     toast('换过来了');
   }
 
-  $('winnew').addEventListener('click', function () {
-    if (controller) controller.abort();
-    pushSession();
-    var s = { id: nid(), title: '', msgs: [], total: 0, t: Date.now() };
-    sessions.push(s);
-    curId = s.id;
-    pullSession();
-    renderChat();
-    showPage('chat');
-    toast('新窗口，干净的');
-  });
-
   function scrollBottom() { mainEl.scrollTop = mainEl.scrollHeight; }
 
   var controller = null;
@@ -616,6 +606,96 @@
     }
     return '没有这个工具。';
   }
+
+  function transcriptOf(sess) {
+    var h = (sess && sess.msgs) || [];
+    var lines = [];
+    for (var i = 0; i < h.length; i++) {
+      var c = String(h[i].content || '').replace(/\s+/g, ' ').trim();
+      if (!c) continue;
+      lines.push((h[i].role === 'user' ? '她：' : '我：') + c.slice(0, 500));
+    }
+    var text = lines.join('\n');
+    if (text.length > 7000) text = '……\n' + text.slice(text.length - 7000);
+    return text;
+  }
+
+  async function condenseSession(sess) {
+    var h = (sess && sess.msgs) || [];
+    if (h.length < 4) return 0;
+    if (!cfg.key) return 0;
+
+    var known = mem.length ? ('已经记得的，不要重复：\n' + mem.slice(-40).join('\n') + '\n\n') : '';
+    var prompt = known +
+      '下面是刚刚聊完的一段对话。从里面挑出值得长期记下来的事实，最多 ' + CONDENSE_MAX + ' 条。' +
+      '只写发生了什么、她说了什么要紧的、定了什么。一条一句，短。不写情绪分析，不写过程，不写你自己说过的话。' +
+      '没什么值得记的就给空数组。只输出 JSON 数组，字符串组成，不要别的字。\n\n' + transcriptOf(sess);
+
+    var route = currentRoute(false);
+    var res = await fetch(route.url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + route.key },
+      body: JSON.stringify({
+        model: route.model,
+        max_tokens: 500,
+        messages: [
+          { role: 'system', content: '你只输出一个 JSON 数组，不要代码块，不要解释。' },
+          { role: 'user', content: prompt }
+        ]
+      })
+    });
+    if (!res.ok) return 0;
+
+    var j = await res.json();
+    var out = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
+    var arr = [];
+    try {
+      var m = out.match(/\[[\s\S]*\]/);
+      var parsed = JSON.parse(m ? m[0] : out);
+      if (Array.isArray(parsed)) arr = parsed;
+    } catch (e) { return 0; }
+
+    var added = 0;
+    arr.forEach(function (x) {
+      var s = String(x || '').replace(/\s+/g, ' ').trim();
+      if (!s || s.length > 120) return;
+      if (mem.indexOf(s) !== -1) return;
+      mem.push(s);
+      added++;
+    });
+    if (added) { save(LS.mem, mem); renderMem(); }
+    return added;
+  }
+
+  $('winnew').addEventListener('click', async function () {
+    if (controller) controller.abort();
+    pushSession();
+
+    var btn = $('winnew');
+    var prev = curSess();
+    var oldLabel = btn.textContent;
+
+    if (prev && (prev.msgs || []).length >= 4 && cfg.key) {
+      btn.disabled = true;
+      btn.textContent = '把这一窗扫一遍…';
+      try {
+        var n = await condenseSession(prev);
+        if (n > 0) toast('留下 ' + n + ' 条记忆');
+        else toast('这一窗没什么值得记的');
+      } catch (e) {
+        toast('扫的时候卡住了，窗口照开');
+      }
+      btn.disabled = false;
+      btn.textContent = oldLabel;
+    }
+
+    var s = { id: nid(), title: '', msgs: [], total: 0, t: Date.now() };
+    sessions.push(s);
+    curId = s.id;
+    pullSession();
+    renderChat();
+    showPage('chat');
+  });
 
   async function requestRound(route, messages, signal, onDelta) {
     var body = {
