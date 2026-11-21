@@ -103,7 +103,7 @@
   .chip img{width:38px;height:38px;object-fit:cover;border-radius:6px;display:block}
   .chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px}
   .chip b{font-weight:400;color:var(--ink);font-size:14px;line-height:1}
-  .chip.pillchip{color:#5b5fd6;border-color:#c9cdf7;background:#f4f5ff}
+  .chip.pillchip{color:#7a6a48;border-color:#e0d8c6;background:#fbf9f3}
 
   .hint{font-size:12px;color:var(--sub);line-height:1.8;margin:0 0 18px}
   .item{display:flex;gap:12px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--line)}
@@ -145,7 +145,7 @@
 <div id="errbar"></div>
 
 <header>
-  <h1 id="brand">归舟<span id="ver">v7.2</span></h1>
+  <h1 id="brand">归舟<span id="ver">v7.3</span></h1>
   <nav class="tabs">
     <button class="tab on" data-page="chat">对话</button>
     <button class="tab" data-page="win">窗口</button>
@@ -255,9 +255,12 @@ window.addEventListener('unhandledrejection', function (e) {
   d.style.display = 'block';
   d.textContent = '出错了：' + ((e.reason && e.reason.message) || e.reason);
 });
+(function () {
+  var s = document.createElement('script');
+  s.src = 'pill.js?t=' + Date.now();
+  document.head.appendChild(s);
+})();
 </script>
-
-<script src="pill.js?v=1"></script>
 
 <script>
 (function () {
@@ -1434,9 +1437,9 @@ window.addEventListener('unhandledrejection', function (e) {
     if ($('s-url')) $('s-url').value = cfg.url || '';
     if ($('s-key')) $('s-key').value = cfg.key || '';
     if ($('s-model')) $('s-model').value = cfg.model || '';
-    if ($('s-vurl')) $('s-vurl').value = cfg.vurl || '';
-    if ($('s-vkey')) $('s-vkey').value = cfg.vkey || '';
-    if ($('s-vmodel')) $('s-vmodel').value = cfg.vmodel || '';
+    if ($('s-vurl')) $('s-vurl').value = cfg.vUrl || '';
+    if ($('s-vkey')) $('s-vkey').value = cfg.vKey || '';
+    if ($('s-vmodel')) $('s-vmodel').value = cfg.vModel || '';
     if ($('s-sys')) $('s-sys').value = cfg.sys || DEFAULT_SYS;
     renderWb();
     renderRx();
