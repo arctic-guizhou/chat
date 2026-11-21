@@ -20,14 +20,24 @@
     -webkit-font-smoothing:antialiased;
   }
   header{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:15px 18px;border-bottom:1px solid var(--line);background:var(--bg);
-    padding-top:calc(15px + env(safe-area-inset-top));
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:11px 14px;border-bottom:1px solid var(--line);background:var(--bg);
+    padding-top:calc(11px + env(safe-area-inset-top));
   }
-  header h1{margin:0;font-size:15px;font-weight:500;letter-spacing:.2em}
-  .tabs{display:flex;gap:16px}
-  .tab{font:inherit;font-size:13px;color:var(--sub);letter-spacing:.1em;background:none;border:0;padding:0}
-  .tab.on{color:var(--ink)}
+  header h1{margin:0;font-size:14px;font-weight:500;letter-spacing:.14em;flex:none}
+  .tabs{
+    display:flex;gap:2px;background:var(--fill);
+    border-radius:9px;padding:3px;flex:none;
+  }
+  .tab{
+    font:inherit;font-size:12.5px;line-height:1;color:var(--sub);letter-spacing:.04em;
+    background:none;border:0;border-radius:7px;padding:7px 10px;
+    transition:background .16s ease,color .16s ease;
+  }
+  .tab.on{
+    color:var(--ink);background:var(--bg);
+    box-shadow:0 1px 2px rgba(0,0,0,.07),0 0 0 .5px rgba(0,0,0,.04);
+  }
   main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .page{display:none;padding:26px 18px 40px}
   .page.on{display:block}
@@ -38,11 +48,11 @@
   .msg.user{text-align:right}
   .msg.user .body{
     display:inline-block;text-align:left;background:var(--fill);
-    padding:11px 14px;border-radius:4px;line-height:1.7;max-width:88%;
+    padding:11px 14px;border-radius:14px;line-height:1.7;max-width:88%;
     white-space:pre-wrap;word-break:break-word;
   }
   .msg .body img{
-    display:block;max-width:100%;width:auto;border-radius:4px;margin:0 0 8px;
+    display:block;max-width:100%;width:auto;border-radius:8px;margin:0 0 8px;
   }
   .meta{margin-top:8px;font-size:11px;color:var(--sub);letter-spacing:.04em}
   .msg.user .meta{text-align:right}
@@ -52,22 +62,22 @@
 
   #composer{
     border-top:1px solid var(--line);background:var(--bg);
-    padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+    padding:9px 14px calc(9px + env(safe-area-inset-bottom));
   }
-  .crow{display:flex;gap:10px;align-items:flex-end}
+  .crow{display:flex;gap:9px;align-items:flex-end}
   #input{
-    flex:1;font:inherit;font-size:15px;line-height:1.5;color:var(--ink);
+    flex:1;font:inherit;font-size:16px;line-height:1.45;color:var(--ink);
     background:none;border:0;outline:none;resize:none;max-height:130px;
-    padding:8px 0;min-height:22px;
+    padding:9px 2px;min-height:24px;
   }
   #plus{
     flex:none;font:inherit;font-size:20px;line-height:1;color:var(--sub);
-    background:none;border:0;padding:4px 2px 8px;
+    background:none;border:0;padding:5px 2px 9px;
   }
   #send{
-    font:inherit;font-size:13px;letter-spacing:.1em;
-    background:var(--ink);color:#fff;border:0;border-radius:4px;
-    padding:9px 15px;flex:none;
+    font:inherit;font-size:13px;letter-spacing:.06em;
+    background:var(--ink);color:#fff;border:0;border-radius:18px;
+    padding:9px 16px;flex:none;
   }
   #send.stop{background:transparent;color:var(--ink);border:1px solid var(--ink)}
 
@@ -80,9 +90,9 @@
   #chips{display:flex;gap:8px;flex-wrap:wrap;padding:0 0 9px}
   .chip{
     display:flex;align-items:center;gap:7px;font-size:12px;color:var(--sub);
-    border:1px solid var(--line);border-radius:4px;padding:4px 7px;max-width:100%;
+    border:1px solid var(--line);border-radius:8px;padding:4px 7px;max-width:100%;
   }
-  .chip img{width:38px;height:38px;object-fit:cover;border-radius:3px;display:block}
+  .chip img{width:38px;height:38px;object-fit:cover;border-radius:6px;display:block}
   .chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px}
   .chip b{font-weight:400;color:var(--ink);font-size:14px;line-height:1}
 
@@ -96,19 +106,19 @@
   .win .sub{font-size:11px;color:var(--sub);margin-top:4px;letter-spacing:.04em}
   .win.on .name{font-weight:500}
   .win .acts{display:flex;flex-direction:column;gap:6px;flex:none}
-  .win .acts button{font:inherit;font-size:12px;color:var(--sub);background:none;border:0;border-radius:3px;padding:4px 6px}
+  .win .acts button{font:inherit;font-size:12px;color:var(--sub);background:none;border:0;border-radius:4px;padding:4px 6px}
   .row{margin-bottom:16px}
   .row label{display:block;font-size:12px;color:var(--sub);letter-spacing:.06em;margin-bottom:7px}
   .row input,.row textarea{
-    width:100%;font:inherit;font-size:14px;color:var(--ink);background:none;
-    border:0;border-bottom:1px solid var(--line);outline:none;padding:7px 0;
-    line-height:1.6;
+    width:100%;font:inherit;font-size:16px;color:var(--ink);background:none;
+    border:0;border-bottom:1px solid var(--line);outline:none;padding:8px 0;
+    line-height:1.5;
   }
-  .row textarea{resize:vertical;min-height:90px;border:1px solid var(--line);border-radius:4px;padding:9px 11px}
+  .row textarea{resize:vertical;min-height:90px;border:1px solid var(--line);border-radius:8px;padding:10px 11px}
   .row textarea[readonly]{color:#6b6b6b;background:#fbfbfb}
   .btn{
-    font:inherit;font-size:13px;letter-spacing:.08em;padding:9px 16px;
-    border:1px solid var(--ink);background:none;color:var(--ink);border-radius:4px;
+    font:inherit;font-size:13px;letter-spacing:.06em;padding:9px 16px;
+    border:1px solid var(--ink);background:none;color:var(--ink);border-radius:18px;
   }
   .btn.solid{background:var(--ink);color:#fff;border-color:var(--ink)}
   .btn[disabled]{opacity:.45}
@@ -117,7 +127,7 @@
   .title{font-size:12px;letter-spacing:.16em;color:var(--sub);margin:0 0 14px}
   #toast{
     position:fixed;left:50%;bottom:96px;transform:translateX(-50%);
-    background:var(--ink);color:#fff;font-size:13px;padding:9px 16px;border-radius:4px;
+    background:var(--ink);color:#fff;font-size:13px;padding:9px 16px;border-radius:10px;
     opacity:0;transition:opacity .25s;pointer-events:none;z-index:9;max-width:80vw;text-align:center;
   }
   #toast.on{opacity:1}
@@ -302,8 +312,7 @@
         description: '删掉已有的某一条记忆。',
         parameters: {
           type: 'object',
-          properties: { index: { type: 'integer', description: '第几条，从 1 开始' } },
-          required: ['index']
+          properties: { index: { type: 'integer', description: '第几条，从 1 开始' } }
         }
       }
     }
