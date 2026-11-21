@@ -529,8 +529,18 @@
     sendBtn.classList.toggle('stop', on);
   }
 
+  function nowLine() {
+    var d = new Date();
+    var wd = ['日', '一', '二', '三', '四', '五', '六'][d.getDay()];
+    var hh = ('0' + d.getHours()).slice(-2);
+    var mm = ('0' + d.getMinutes()).slice(-2);
+    return '现在是 ' + d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日' +
+      ' 星期' + wd + ' ' + hh + ':' + mm + '。这是她手机上的钟，北京时间。';
+  }
+
   function systemContent() {
     var s = (cfg.sys || DEFAULT_SYS).trim();
+    s = nowLine() + '\n\n' + s;
     s += '\n\n你手里有三个工具：write_memory 加一条记忆，update_memory 改第几条，delete_memory 删第几条。' +
       '她让你记、或者你自己觉得该记的，直接动手，不用问她。删和改之前心里过一遍，别把她说过的要紧事弄丢。';
     if (mem.length) {
