@@ -97,11 +97,13 @@
   #attachmenu{display:none;gap:8px;padding:0 0 9px 2px}
   #attachmenu.on{display:flex}
   #attachmenu button{font:inherit;font-size:12px;color:var(--ink);background:none;border:1px solid var(--line);border-radius:14px;padding:5px 12px}
+  #attachmenu button.pill{color:#5b5fd6;border-color:#c9cdf7}
   #chips{display:flex;gap:8px;flex-wrap:wrap;padding:0 0 9px}
   .chip{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--sub);border:1px solid var(--line);border-radius:8px;padding:4px 7px;max-width:100%}
   .chip img{width:38px;height:38px;object-fit:cover;border-radius:6px;display:block}
   .chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px}
   .chip b{font-weight:400;color:var(--ink);font-size:14px;line-height:1}
+  .chip.pillchip{color:#5b5fd6;border-color:#c9cdf7;background:#f4f5ff}
 
   .hint{font-size:12px;color:var(--sub);line-height:1.8;margin:0 0 18px}
   .item{display:flex;gap:12px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--line)}
@@ -143,7 +145,7 @@
 <div id="errbar"></div>
 
 <header>
-  <h1 id="brand">归舟<span id="ver">v7.1</span></h1>
+  <h1 id="brand">归舟<span id="ver">v7.2</span></h1>
   <nav class="tabs">
     <button class="tab on" data-page="chat">对话</button>
     <button class="tab" data-page="win">窗口</button>
@@ -227,6 +229,7 @@
   <div id="attachmenu">
     <button id="pickimg">选图片</button>
     <button id="pickfile">选文件</button>
+    <button id="pickpill" class="pill">药盒</button>
   </div>
   <div class="crow">
     <button id="plus" aria-label="附件">+</button>
@@ -253,6 +256,8 @@ window.addEventListener('unhandledrejection', function (e) {
   d.textContent = '出错了：' + ((e.reason && e.reason.message) || e.reason);
 });
 </script>
+
+<script src="pill.js?v=1"></script>
 
 <script>
 (function () {
@@ -695,12 +700,21 @@ window.addEventListener('unhandledrejection', function (e) {
     return '\n\n【这次用得上的】\n' + hits.join('\n');
   }
 
+  function pillBlock() {
+    var p = (window.PillBox && window.PillBox.current) ? window.PillBox.current() : null;
+    if (!p) return '';
+    return '\n\n【这一轮在服 ' + p.code + ' ' + p.name + '】\n' +
+      '她刚给你吃了这颗药。下面这段是认知层的提示，不是台词，不要照着念，也不要提「我吃了药」这件事。让它决定你怎么看这个场面、站在哪儿、绕开哪里。\n\n' +
+      (p.text || '');
+  }
+
   function systemContent(haystack) {
     var s = nowLine() + '\n\n' + (cfg.sys || DEFAULT_SYS).trim();
     s += '\n\n你手里有三个工具：write_memory 加一条记忆，update_memory 改第几条，delete_memory 删第几条。' +
       '她让你记、或者你自己觉得该记的，直接动手，不用问她。删和改之前心里过一遍，别把她说过的要紧事弄丢。';
     s += memBlock();
     s += wbBlock(haystack || '');
+    s += pillBlock();
     return s;
   }
 
@@ -1108,6 +1122,22 @@ window.addEventListener('unhandledrejection', function (e) {
     var box = $('chips');
     if (!box) return;
     box.innerHTML = '';
+    var pillNow = (window.PillBox && window.PillBox.current) ? window.PillBox.current() : null;
+    if (pillNow) {
+      var c0 = document.createElement('div');
+      c0.className = 'chip pillchip';
+      var s0 = document.createElement('span');
+      s0.textContent = '服 ' + pillNow.code + ' ' + pillNow.name;
+      var x0 = document.createElement('b');
+      x0.textContent = '×';
+      x0.addEventListener('click', function () {
+        if (window.PillBox) window.PillBox.clear();
+        renderChips();
+      });
+      c0.appendChild(s0);
+      c0.appendChild(x0);
+      box.appendChild(c0);
+    }
     if (pending.img) {
       var c = document.createElement('div');
       c.className = 'chip';
@@ -1134,6 +1164,8 @@ window.addEventListener('unhandledrejection', function (e) {
     }
   }
 
+  window.__pillChanged = function () { renderChips(); };
+
   function clearPending() {
     pending = { img: '', fileName: '', fileText: '' };
     renderChips();
@@ -1145,6 +1177,12 @@ window.addEventListener('unhandledrejection', function (e) {
   if (pickImgBtn) pickImgBtn.addEventListener('click', function () { $('attachmenu').classList.remove('on'); $('fileimg').click(); });
   var pickFileBtn = $('pickfile');
   if (pickFileBtn) pickFileBtn.addEventListener('click', function () { $('attachmenu').classList.remove('on'); $('filetxt').click(); });
+  var pickPillBtn = $('pickpill');
+  if (pickPillBtn) pickPillBtn.addEventListener('click', function () {
+    $('attachmenu').classList.remove('on');
+    if (window.PillBox) window.PillBox.open();
+    else toast('药盒没加载上');
+  });
 
   function compressImage(file, cb) {
     var reader = new FileReader();
@@ -1396,9 +1434,9 @@ window.addEventListener('unhandledrejection', function (e) {
     if ($('s-url')) $('s-url').value = cfg.url || '';
     if ($('s-key')) $('s-key').value = cfg.key || '';
     if ($('s-model')) $('s-model').value = cfg.model || '';
-    if ($('s-vurl')) $('s-vurl').value = cfg.vUrl || '';
-    if ($('s-vkey')) $('s-vkey').value = cfg.vKey || '';
-    if ($('s-vmodel')) $('s-vmodel').value = cfg.vModel || '';
+    if ($('s-vurl')) $('s-vurl').value = cfg.vurl || '';
+    if ($('s-vkey')) $('s-vkey').value = cfg.vkey || '';
+    if ($('s-vmodel')) $('s-vmodel').value = cfg.vmodel || '';
     if ($('s-sys')) $('s-sys').value = cfg.sys || DEFAULT_SYS;
     renderWb();
     renderRx();
