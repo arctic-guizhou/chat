@@ -25,6 +25,7 @@
     padding-top:calc(11px + env(safe-area-inset-top));
   }
   header h1{margin:0;font-size:14px;font-weight:500;letter-spacing:.14em;flex:none}
+  #ver{font-size:9px;font-weight:400;color:var(--sub);letter-spacing:0;margin-left:5px;vertical-align:super}
   .tabs{display:flex;gap:2px;background:var(--fill);border-radius:9px;padding:3px;flex:none}
   .tab{
     font:inherit;font-size:12.5px;line-height:1;color:var(--sub);letter-spacing:.04em;
@@ -129,7 +130,7 @@
 <body>
 
 <header>
-  <h1 id="brand">归舟</h1>
+  <h1 id="brand">归舟<span id="ver">v5</span></h1>
   <nav class="tabs">
     <button class="tab on" data-page="chat">对话</button>
     <button class="tab" data-page="win">窗口</button>
@@ -142,7 +143,7 @@
   <section class="page on" id="page-chat"><div id="msgs"></div></section>
 
   <section class="page" id="page-win">
-    <p class="hint">每个窗口自己一段对话，互不干扰。点新建的时候，会先把手上这个窗口扫一遍，值得留的变成记忆条目，然后再给你一个干净的。</p>
+    <p class="hint">每个窗口自己一段对话，互不干扰。点新建的时候，会先把手上这个窗口扫一遍，值得留的变成记忆条目，然后再给你一个干净的。点哪一行，就进哪个窗口。</p>
     <div class="btns"><button class="btn solid" id="winnew">新建一个窗口</button></div>
     <div id="winlist" style="margin-top:22px"></div>
   </section>
@@ -181,13 +182,13 @@
     <p class="title">世 界 书</p>
     <p class="hint">关键词命中才把那一条插进去，没命中的不花 token。关键词用逗号隔开。</p>
     <div id="wblist"></div>
-    <div class="row" style="margin-top:16px"><label>关键词</label><input id="wbkeys" placeholder="花园, glxy, 望青" autocapitalize="off" autocorrect="off"></div>
+    <div class="row" style="margin-top:16px"><label>关键词</label><input id="wbkeys" placeholder="花园, glxy, 望青" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
     <div class="row"><label>命中后插进去的内容</label><textarea id="wbtext" style="min-height:70px" placeholder="写你想让它想起来的东西"></textarea></div>
     <div class="btns"><button class="btn solid" id="wbadd">加一条</button></div>
 
     <div class="sep"></div>
     <p class="title">正 则 替 换</p>
-    <p class="hint">在我输出的字上过一遍，专治机味。写法是 JS 正则，比如 \u2014\u2014 换成 ，。</p>
+    <p class="hint">在我输出的字上过一遍，专治机味。写法是 JS 正则。</p>
     <div id="rxlist"></div>
     <div class="row" style="margin-top:16px"><label>匹配</label><input id="rxfrom" placeholder="\\u2014\\u2014" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
     <div class="row"><label>换成</label><input id="rxto" placeholder="，" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
@@ -313,8 +314,7 @@
         description: '删掉已有的某一条记忆。',
         parameters: {
           type: 'object',
-          properties: { index: { type: 'integer', description: '第几条，从 1 开始' } },
-          required: ['index']
+          properties: { index: { type: 'integer', description: '第几条，从 1 开始' } }
         }
       }
     }
@@ -523,6 +523,7 @@
     list.forEach(function (w) {
       var d = document.createElement('div');
       d.className = 'win' + (w.id === curId ? ' on' : '');
+
       var t = document.createElement('div');
       t.className = 'txt';
       var n = document.createElement('div');
@@ -533,42 +534,48 @@
       sub.textContent = ((w.msgs || []).length) + ' 条 · ' + (w.total || 0).toLocaleString('en-US') + ' tokens' + (w.id === curId ? ' · 正在用' : '');
       t.appendChild(n);
       t.appendChild(sub);
+
       var acts = document.createElement('div');
       acts.className = 'acts';
+
       var open = document.createElement('button');
       open.textContent = w.id === curId ? '就是它' : '打开';
-      open.setAttribute('data-open', w.id);
+      open.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        openWindow(w.id);
+      });
       acts.appendChild(open);
+
       var del = document.createElement('button');
       del.textContent = '删';
-      del.setAttribute('data-del', w.id);
+      del.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        deleteWindow(w.id);
+      });
       acts.appendChild(del);
+
       d.appendChild(t);
       d.appendChild(acts);
+
+      d.addEventListener('click', function () { openWindow(w.id); });
+
       box.appendChild(d);
     });
   }
 
-  $('winlist').addEventListener('click', function (e) {
-    var el = e.target;
-    while (el && el.tagName !== 'BUTTON' && el !== this) el = el.parentNode;
-    if (!el || el.tagName !== 'BUTTON') return;
-    var openId = el.getAttribute('data-open');
-    if (openId) { switchSession(openId); return; }
-    var delId = el.getAttribute('data-del');
-    if (delId) {
-      if (!confirm('删掉这个窗口？对话就没了，记忆不动。')) return;
-      for (var i = 0; i < sessions.length; i++) {
-        if (sessions[i].id === delId) { sessions.splice(i, 1); break; }
-      }
-      if (!sessions.length) sessions.push({ id: nid(), title: '', msgs: [], total: 0, t: Date.now() });
-      if (curId === delId) { curId = sessions[0].id; pullSession(); renderChat(); }
-      pushSession();
-      renderWins();
+  function deleteWindow(id) {
+    if (!confirm('删掉这个窗口？对话就没了，记忆不动。')) return;
+    for (var i = 0; i < sessions.length; i++) {
+      if (sessions[i].id === id) { sessions.splice(i, 1); break; }
     }
-  });
+    if (!sessions.length) sessions.push({ id: nid(), title: '', msgs: [], total: 0, t: Date.now() });
+    if (curId === id) { curId = sessions[0].id; pullSession(); renderChat(); }
+    pushSession();
+    renderWins();
+  }
 
-  function switchSession(id) {
+  function openWindow(id) {
+    if (id === curId) { toast('已经在这个窗口'); showPage('chat'); return; }
     try {
       if (controller) { try { controller.abort(); } catch (e) {} controller = null; }
       pushSession();
@@ -578,7 +585,7 @@
       renderWins();
       showPage('chat');
       save(LS.cur, curId);
-      toast('换过来了');
+      toast('换过来了 · ' + (curSess().title || '空窗口'));
     } catch (err) {
       toast('切不过去：' + (err && err.message ? err.message : err));
     }
@@ -1137,10 +1144,7 @@
       var b = document.createElement('button');
       b.className = 'btn' + (pendingCat === c.id ? ' solid' : '');
       b.textContent = c.name;
-      b.addEventListener('click', function () {
-        pendingCat = c.id;
-        renderMemCats();
-      });
+      b.addEventListener('click', function () { pendingCat = c.id; renderMemCats(); });
       box.appendChild(b);
     });
   }
@@ -1164,7 +1168,6 @@
       h.className = 'cat';
       h.textContent = cat.name;
       box.appendChild(h);
-
       rows.forEach(function (r) {
         var d = document.createElement('div');
         d.className = 'item';
@@ -1251,18 +1254,10 @@
       acts.className = 'acts';
       var tg = document.createElement('button');
       tg.textContent = e.on === false ? '开' : '关';
-      tg.addEventListener('click', function () {
-        wb[i].on = (e.on === false);
-        save(LS.wb, wb);
-        renderWb();
-      });
+      tg.addEventListener('click', function () { wb[i].on = (e.on === false); save(LS.wb, wb); renderWb(); });
       var del = document.createElement('button');
       del.textContent = '删';
-      del.addEventListener('click', function () {
-        wb.splice(i, 1);
-        save(LS.wb, wb);
-        renderWb();
-      });
+      del.addEventListener('click', function () { wb.splice(i, 1); save(LS.wb, wb); renderWb(); });
       acts.appendChild(tg);
       acts.appendChild(del);
       d.appendChild(t);
@@ -1303,18 +1298,10 @@
       acts.className = 'acts';
       var tg = document.createElement('button');
       tg.textContent = r.on === false ? '开' : '关';
-      tg.addEventListener('click', function () {
-        rx[i].on = (r.on === false);
-        save(LS.rx, rx);
-        renderRx();
-      });
+      tg.addEventListener('click', function () { rx[i].on = (r.on === false); save(LS.rx, rx); renderRx(); });
       var del = document.createElement('button');
       del.textContent = '删';
-      del.addEventListener('click', function () {
-        rx.splice(i, 1);
-        save(LS.rx, rx);
-        renderRx();
-      });
+      del.addEventListener('click', function () { rx.splice(i, 1); save(LS.rx, rx); renderRx(); });
       acts.appendChild(tg);
       acts.appendChild(del);
       d.appendChild(t);
