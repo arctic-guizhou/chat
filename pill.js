@@ -34,6 +34,9 @@
   var SERIF = '"Noto Serif SC","Songti SC","STSong",serif';
 
   var CSS = [
+    /* + 菜单里「药盒」两个字跟着旁边走，不要自己一个色 */
+    '#attachmenu button.pill{color:#111111 !important;border-color:#e6e6e6 !important}',
+    '.chip.pillchip{color:#111111 !important;border-color:#e6e6e6 !important;background:#f0f0f0 !important}',
     '.pbx{position:fixed;inset:0;z-index:80;pointer-events:none}',
     '.pbx-veil{position:absolute;inset:0;background:rgba(250,250,250,.62);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);opacity:0;transition:opacity .35s}',
     '.pbx.open .pbx-veil{opacity:1;pointer-events:auto}',
