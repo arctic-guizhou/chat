@@ -154,8 +154,9 @@
       var dx = e.touches[0].clientX - startX;
       var dy = e.touches[0].clientY - startY;
       if (!decided) {
-        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-        if (Math.abs(dy) >= Math.abs(dx)) {
+        if (Math.abs(dx) < 6) return;
+        /* 竖着明显多于横着，就当作在滚页面，不抢 */
+        if (Math.abs(dy) > Math.abs(dx) * 1.8 && Math.abs(dy) > 12) {
           dragging = false;
           thaw();
           return;
@@ -175,7 +176,7 @@
       if (!dragging && !decided) return;
       dragging = false;
       thaw();
-      if (decided) settle(row, cur < -SLOT * 0.4);
+      if (decided) settle(row, cur < -SLOT * 0.35);
       decided = false;
     }
     row.addEventListener('touchend', end);
@@ -200,18 +201,20 @@
   function decorate() {
     var list = sortedSessions();
     var rows = box.querySelectorAll('.win');
-    if (!rows.length || rows.length !== list.length) return;
+    if (!rows.length) return;
     var al = readAlias();
+    var sameCount = rows.length === list.length;
     for (var i = 0; i < rows.length; i++) {
       var row = rows[i];
+      bindSwipe(row);
+      if (!sameCount) continue;
       var nameEl = row.querySelector('.name');
-      if (!nameEl) return;
+      if (!nameEl) continue;
       var truth = list[i].title || '空窗口';
       var alias = al[list[i].id];
-      if (nameEl.textContent !== truth && nameEl.textContent !== alias) return;
+      if (nameEl.textContent !== truth && nameEl.textContent !== alias) continue;
       if (alias) nameEl.textContent = alias;
       addBtn(row, list[i].id, nameEl, truth);
-      bindSwipe(row);
     }
   }
 
