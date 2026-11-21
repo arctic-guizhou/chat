@@ -31,7 +31,7 @@
 .page.on{animation:gzFade .26s cubic-bezier(.32,.72,0,1)}
 @keyframes gzFade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 
-/* ---------- 窗口页：只留名字和两个小字 ---------- */
+/* ---------- 窗口页：行里只留名字 ---------- */
 #page-win{padding-top:22px}
 #page-win .hint{font-size:11.5px;line-height:1.8;margin:0 0 14px;opacity:.85}
 #page-win .btns{margin-top:0}
@@ -39,8 +39,9 @@
 #page-win #winlist{margin-top:14px !important}
 
 #winlist .win{
-  padding:13px 0;gap:8px;align-items:center;
+  padding:15px 0;gap:8px;align-items:center;
   border-bottom:1px solid var(--line);
+  transition:background .18s ease;
 }
 #winlist .win:last-child{border-bottom:0}
 #winlist .win .txt{flex:1;min-width:0}
@@ -53,14 +54,15 @@
   font-size:10.5px;line-height:1.4;margin-top:3px;
   color:var(--sub);letter-spacing:.02em;opacity:.85;
 }
-#winlist .win .acts{
-  flex-direction:row;gap:0;align-items:center;flex:none;
-}
-/* 「打开」藏了，整行点一下就是打开 */
+
+/* 操作平时看不见，长按那一行才冒出来 */
+#winlist .win .acts{display:none;flex-direction:row;gap:0;align-items:center;flex:none}
+#winlist .win.showacts .acts{display:flex}
+#winlist .win.showacts .name{color:var(--sub)}
 #winlist .win .acts button:first-child{display:none}
 #winlist .win .acts button{
-  padding:9px 6px;font-size:11px;line-height:1;border-radius:6px;
-  color:var(--sub);background:none;border:0;white-space:nowrap;opacity:.7;
+  padding:9px 7px;font-size:11.5px;line-height:1;border-radius:6px;
+  color:var(--sub);background:none;border:0;white-space:nowrap;
   transition:opacity .18s ease,background .18s ease;
 }
-#winlist .win .acts button:active{opacity:1;background:var(--fill)}
+#winlist .win .acts button:active{background:var(--fill);color:var(--ink)}
