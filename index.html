@@ -145,7 +145,7 @@
 <div id="errbar"></div>
 
 <header>
-  <h1 id="brand">归舟<span id="ver">v7.4</span></h1>
+  <h1 id="brand">归舟<span id="ver">v7.5</span></h1>
   <nav class="tabs">
     <button class="tab on" data-page="chat">对话</button>
     <button class="tab" data-page="win">窗口</button>
@@ -256,6 +256,13 @@ window.addEventListener('unhandledrejection', function (e) {
   d.textContent = '出错了：' + ((e.reason && e.reason.message) || e.reason);
 });
 (function () {
+  var v = document.createElement('script');
+  v.src = 'ver.js?t=' + Date.now();
+  v.onload = function () {
+    var el = document.getElementById('ver');
+    if (el && window.GZ_VER) el.textContent = 'v' + window.GZ_VER;
+  };
+  document.head.appendChild(v);
   var s = document.createElement('script');
   s.src = 'pill.js?t=' + Date.now();
   document.head.appendChild(s);
