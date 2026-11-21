@@ -31,7 +31,7 @@
 .page.on{animation:gzFade .26s cubic-bezier(.32,.72,0,1)}
 @keyframes gzFade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 
-/* ---------- 窗口页：行里只留名字 ---------- */
+/* ---------- 窗口页：行里只留名字，往左划才出操作 ---------- */
 #page-win{padding-top:22px}
 #page-win .hint{font-size:11.5px;line-height:1.8;margin:0 0 14px;opacity:.85}
 #page-win .btns{margin-top:0}
@@ -39,12 +39,15 @@
 #page-win #winlist{margin-top:14px !important}
 
 #winlist .win{
-  padding:15px 0;gap:8px;align-items:center;
+  position:relative;overflow:hidden;
+  padding:15px 0;align-items:center;
   border-bottom:1px solid var(--line);
-  transition:background .18s ease;
 }
 #winlist .win:last-child{border-bottom:0}
-#winlist .win .txt{flex:1;min-width:0}
+#winlist .win .txt{
+  flex:1;min-width:0;
+  transition:transform .26s cubic-bezier(.32,.72,0,1);
+}
 #winlist .win .name{
   font-size:14.5px;line-height:1.4;letter-spacing:.01em;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
@@ -55,10 +58,14 @@
   color:var(--sub);letter-spacing:.02em;opacity:.85;
 }
 
-/* 操作平时看不见，长按那一行才冒出来 */
-#winlist .win .acts{display:none;flex-direction:row;gap:0;align-items:center;flex:none}
-#winlist .win.showacts .acts{display:flex}
-#winlist .win.showacts .name{color:var(--sub)}
+/* 那格操作平时停在行外面，左边一划就滑进来 */
+#winlist .win .acts{
+  position:absolute;right:0;top:0;bottom:0;width:96px;
+  display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:0;
+  background:var(--bg);
+  transform:translateX(96px);
+  transition:transform .26s cubic-bezier(.32,.72,0,1);
+}
 #winlist .win .acts button:first-child{display:none}
 #winlist .win .acts button{
   padding:9px 7px;font-size:11.5px;line-height:1;border-radius:6px;
