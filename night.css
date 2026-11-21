@@ -1,0 +1,26 @@
+/* 归舟 · 8.3 备件：夜间配色 + 排版微调
+   等主页接上一行 link 就生效 */
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f1317; --ink:#e9e7e2; --sub:#8b9198; --line:#212830; --fill:#1a2027;
+  }
+  html{color-scheme:dark}
+  #send{background:var(--ink);color:#0f1317}
+  #send.stop{background:transparent;color:var(--ink);border-color:var(--ink)}
+  #toast{background:#e9e7e2;color:#0f1317}
+  .row textarea[readonly]{background:#141a20;color:#a8aeb5}
+}
+
+/* 一条条之间靠留白分开，不画横线 */
+.msg{border-bottom:0;padding-bottom:0;margin-bottom:20px}
+.msg.assistant .body{line-height:1.85}
+
+/* 输入框里的提示字淡一点 */
+#input::placeholder{color:var(--sub);opacity:.7}
+
+/* 滚动顺一点，滚动条藏起来 */
+main{scroll-behavior:smooth;scrollbar-width:none}
+main::-webkit-scrollbar{display:none}
+
+/* 选中的字 */
+::selection{background:rgba(70,110,115,.25)}
