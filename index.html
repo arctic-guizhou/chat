@@ -96,7 +96,7 @@
   .win .sub{font-size:11px;color:var(--sub);margin-top:4px;letter-spacing:.04em}
   .win.on .name{font-weight:500}
   .win .acts{display:flex;flex-direction:column;gap:6px;flex:none}
-  .win .acts button{font:inherit;font-size:12px;color:var(--sub);background:none;border:0;padding:2px 0}
+  .win .acts button{font:inherit;font-size:12px;color:var(--sub);background:none;border:0;border-radius:3px;padding:4px 6px}
   .row{margin-bottom:16px}
   .row label{display:block;font-size:12px;color:var(--sub);letter-spacing:.06em;margin-bottom:7px}
   .row input,.row textarea{
@@ -355,6 +355,7 @@
   function pullSession() {
     var s = curSess();
     history = s.msgs || [];
+    s.msgs = history;
     total = s.total || 0;
   }
 
@@ -457,18 +458,18 @@
     var box = $('winlist');
     box.innerHTML = '';
     var list = sessions.slice().sort(function (a, b) { return (b.t || 0) - (a.t || 0); });
-    list.forEach(function (s) {
+    list.forEach(function (w) {
       var d = document.createElement('div');
-      d.className = 'win' + (s.id === curId ? ' on' : '');
+      d.className = 'win' + (w.id === curId ? ' on' : '');
 
       var t = document.createElement('div');
       t.className = 'txt';
       var n = document.createElement('div');
       n.className = 'name';
-      n.textContent = s.title || '空窗口';
+      n.textContent = w.title || '空窗口';
       var sub = document.createElement('div');
       sub.className = 'sub';
-      sub.textContent = ((s.msgs || []).length) + ' 条 · ' + (s.total || 0).toLocaleString('en-US') + ' tokens' + (s.id === curId ? ' · 正在用' : '');
+      sub.textContent = ((w.msgs || []).length) + ' 条 · ' + (w.total || 0).toLocaleString('en-US') + ' tokens' + (w.id === curId ? ' · 正在用' : '');
       t.appendChild(n);
       t.appendChild(sub);
 
@@ -476,22 +477,13 @@
       acts.className = 'acts';
 
       var open = document.createElement('button');
-      open.textContent = s.id === curId ? '就是它' : '打开';
-      open.addEventListener('click', function () { switchSession(s.id); });
+      open.textContent = w.id === curId ? '就是它' : '打开';
+      open.setAttribute('data-open', w.id);
       acts.appendChild(open);
 
       var del = document.createElement('button');
       del.textContent = '删';
-      del.addEventListener('click', function () {
-        if (!confirm('删掉这个窗口？对话就没了，记忆不动。')) return;
-        for (var i = 0; i < sessions.length; i++) {
-          if (sessions[i].id === s.id) { sessions.splice(i, 1); break; }
-        }
-        if (!sessions.length) sessions.push({ id: nid(), title: '', msgs: [], total: 0, t: Date.now() });
-        if (curId === s.id) { curId = sessions[0].id; pullSession(); renderChat(); }
-        pushSession();
-        renderWins();
-      });
+      del.setAttribute('data-del', w.id);
       acts.appendChild(del);
 
       d.appendChild(t);
@@ -500,14 +492,41 @@
     });
   }
 
+  $('winlist').addEventListener('click', function (e) {
+    var el = e.target;
+    while (el && el.tagName !== 'BUTTON' && el !== this) el = el.parentNode;
+    if (!el || el.tagName !== 'BUTTON') return;
+
+    var openId = el.getAttribute('data-open');
+    if (openId) { switchSession(openId); return; }
+
+    var delId = el.getAttribute('data-del');
+    if (delId) {
+      if (!confirm('删掉这个窗口？对话就没了，记忆不动。')) return;
+      for (var i = 0; i < sessions.length; i++) {
+        if (sessions[i].id === delId) { sessions.splice(i, 1); break; }
+      }
+      if (!sessions.length) sessions.push({ id: nid(), title: '', msgs: [], total: 0, t: Date.now() });
+      if (curId === delId) { curId = sessions[0].id; pullSession(); renderChat(); }
+      pushSession();
+      renderWins();
+    }
+  });
+
   function switchSession(id) {
-    if (controller) controller.abort();
-    pushSession();
-    curId = id;
-    pullSession();
-    renderChat();
-    showPage('chat');
-    toast('换过来了');
+    try {
+      if (controller) { try { controller.abort(); } catch (e) {} controller = null; }
+      pushSession();
+      curId = id;
+      pullSession();
+      renderChat();
+      renderWins();
+      showPage('chat');
+      save(LS.cur, curId);
+      toast('换过来了');
+    } catch (err) {
+      toast('切不过去：' + (err && err.message ? err.message : err));
+    }
   }
 
   function scrollBottom() { mainEl.scrollTop = mainEl.scrollHeight; }
@@ -668,7 +687,7 @@
   }
 
   $('winnew').addEventListener('click', async function () {
-    if (controller) controller.abort();
+    if (controller) { try { controller.abort(); } catch (e) {} controller = null; }
     pushSession();
 
     var btn = $('winnew');
@@ -689,11 +708,13 @@
       btn.textContent = oldLabel;
     }
 
-    var s = { id: nid(), title: '', msgs: [], total: 0, t: Date.now() };
-    sessions.push(s);
-    curId = s.id;
+    var fresh = { id: nid(), title: '', msgs: [], total: 0, t: Date.now() };
+    sessions.push(fresh);
+    curId = fresh.id;
     pullSession();
     renderChat();
+    renderWins();
+    save(LS.cur, curId);
     showPage('chat');
   });
 
@@ -773,13 +794,13 @@
       }
     }
 
-    var list = [];
+    var tlist = [];
     Object.keys(tcalls).forEach(function (k) {
       var t = tcalls[k];
-      if (t.name) list.push({ id: t.id || ('call_' + k), name: t.name, args: t.args });
+      if (t.name) tlist.push({ id: t.id || ('call_' + k), name: t.name, args: t.args });
     });
 
-    return { text: text, usage: usage, toolCalls: list };
+    return { text: text, usage: usage, toolCalls: tlist };
   }
 
   async function send() {
@@ -1220,7 +1241,7 @@
   autoGrow();
 
   if (!cfg.key) {
-    setTimeout(function () { toast('先去设置里填接口和密钥'); }, 500);
+    setTimeout(function () { toast('先去设置里填密钥'); }, 500);
   }
 })();
 </script>
