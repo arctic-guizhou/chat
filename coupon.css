@@ -1,0 +1,21 @@
+/* 券 · 一天一张 */
+.tk{position:relative;display:flex;min-height:170px;background:var(--fill);border-radius:14px;overflow:hidden;transition:transform .45s cubic-bezier(.2,.7,.2,1),opacity .3s ease}
+.tk.out{transform:translateY(6px) scale(.985);opacity:.35}
+.tkstub{width:52px;flex:none;border-right:1px dashed var(--line);display:flex;align-items:center;justify-content:center}
+.tkstub span{writing-mode:vertical-rl;font-size:11px;letter-spacing:.2em;color:var(--sub)}
+.tkbody{flex:1;padding:22px 20px;display:flex;flex-direction:column;justify-content:center;min-width:0}
+.tkwish{margin:0;font-size:18px;line-height:1.6}
+.tkhint{margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--sub)}
+.tkstamp{position:absolute;right:14px;bottom:12px;width:50px;height:50px;border-radius:50%;border:1.5px solid #a8412f;color:#a8412f;display:flex;align-items:center;justify-content:center;font-size:11px;letter-spacing:.12em;transform:rotate(-11deg);opacity:0;transition:opacity .35s}
+.tkstamp.on{opacity:.72}
+.tkpast{margin-top:30px}
+.tkrow{display:flex;gap:9px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px;line-height:1.6;color:var(--sub)}
+.tkrow b{font-weight:400;color:var(--ink);opacity:.5;flex:none;font-size:11px;letter-spacing:.06em}
+
+/* 顶栏的「⋯」：横着展开，不往下拉 */
+.more{flex:none;font:inherit;font-size:15px;line-height:1;color:var(--sub);background:none;border:0;border-radius:7px;padding:6px 7px 8px}
+.more-tab{display:none}
+.tabs.open .tab[data-page="chat"],
+.tabs.open .tab[data-page="win"],
+.tabs.open .tab[data-page="mem"]{display:none}
+.tabs.open .more-tab{display:block}
