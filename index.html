@@ -178,7 +178,7 @@
       <button class="btn" id="memexport">导出文件</button>
       <button class="btn" id="memimport">导入文件</button>
     </div>
-    <input type="file" id="memfile" accept=".json,application/json" style="display:none">
+    <input type="file" id="memfile" accept=".json,.txt,.md,.markdown,.csv,.tsv,.log,.yml,.yaml,text/*,application/json" style="display:none">
   </section>
 
   <section class="page" id="page-set">
@@ -240,7 +240,7 @@
     <button id="send">发送</button>
   </div>
   <input type="file" id="fileimg" accept="image/*" style="display:none">
-  <input type="file" id="filetxt" accept=".txt,.md,.json,.csv,.log,text/*" style="display:none">
+  <input type="file" id="filetxt" accept=".txt,.md,.markdown,.json,.csv,.tsv,.log,.yml,.yaml,.xml,.html,.htm,.js,.ts,.py,.css,.ini,.conf,text/*" style="display:none">
 </div>
 
 <div id="toast"></div>
@@ -1292,9 +1292,10 @@ window.addEventListener('unhandledrejection', function (e) {
   $('filetxt').addEventListener('change', function (e) {
     var f = e.target.files && e.target.files[0];
     if (!f) return;
+    if (f.size > 2 * 1024 * 1024) { toast('文件太大了，两兆以上的先截一段'); e.target.value = ''; return; }
     var r = new FileReader();
     r.onload = function () {
-      pending.fileText = String(r.result || '');
+      pending.fileText = String(r.result || '').replace(/^\uFEFF/, '');
       pending.fileName = f.name;
       renderChips();
       toast('文件读进来了');
@@ -1305,6 +1306,73 @@ window.addEventListener('unhandledrejection', function (e) {
   });
 
   var pendingCat = 'identity';
+
+  /* 导入：json 数组、json 对象里套着的数组、{键:内容} 映射、纯文本一行一条、md 列表，都收 */
+  function parseMemoryFile(raw) {
+    var text = String(raw || '').replace(/^\uFEFF/, '');
+    var out = [];
+
+    function pushText(t, cat) {
+      t = String(t == null ? '' : t).replace(/\s+/g, ' ').trim();
+      if (!t) return;
+      if (t.length > 400) t = t.slice(0, 400);
+      var c = cat || 'identity';
+      var ok = false;
+      for (var i = 0; i < CATS.length; i++) if (CATS[i].id === c) ok = true;
+      if (!ok) c = 'identity';
+      out.push({ cat: c, text: t });
+    }
+
+    function eatArray(arr) {
+      for (var i = 0; i < arr.length; i++) {
+        var x = arr[i];
+        if (typeof x === 'string' || typeof x === 'number') pushText(x);
+        else if (x && typeof x === 'object') {
+          pushText(
+            x.text != null ? x.text : (x.content != null ? x.content : (x.memory != null ? x.memory : (x.value != null ? x.value : (x.body != null ? x.body : '')))),
+            x.cat || x.kind || x.category || x.type || 'identity'
+          );
+        }
+      }
+    }
+
+    var j = null;
+    try { j = JSON.parse(text); } catch (e) { j = null; }
+
+    if (j !== null && typeof j !== 'undefined') {
+      if (Array.isArray(j)) eatArray(j);
+      else if (typeof j === 'object') {
+        var keys = ['memories', 'memory', 'entries', 'entry', 'items', 'data', 'list', 'facts', 'records', 'notes'];
+        var hit = null;
+        for (var i = 0; i < keys.length; i++) { if (Array.isArray(j[keys[i]])) { hit = j[keys[i]]; break; } }
+        if (hit) eatArray(hit);
+        else if (typeof j.text === 'string') pushText(j.text);
+        else {
+          var okMap = false;
+          for (var k in j) {
+            if (typeof j[k] === 'string' && j[k].trim()) {
+              pushText(j[k], /^(identity|workflow|voice|rules)$/.test(k) ? k : 'identity');
+              okMap = true;
+            }
+          }
+          if (!okMap && j.mem != null) pushText(j.mem);
+        }
+      }
+      return out;
+    }
+
+    var lines = text.split(/\r?\n/);
+    for (var li = 0; li < lines.length; li++) {
+      var s = lines[li].replace(/^\s*(?:[-*•·]|\d+[.、)])\s*/, '').trim();
+      if (!s) continue;
+      if (/^#{1,6}\s/.test(s)) continue;
+      if (/^```/.test(s)) continue;
+      if (/^\|?\s*:?-{3,}/.test(s)) continue;
+      if (s.indexOf(',') !== -1 && /^[^,]+,[^,]+$/.test(s)) s = s.split(',')[0].trim();
+      pushText(s);
+    }
+    return out;
+  }
 
   function renderMemCats() {
     var box = $('memcats');
@@ -1390,21 +1458,27 @@ window.addEventListener('unhandledrejection', function (e) {
   $('memfile').addEventListener('change', function (e) {
     var f = e.target.files && e.target.files[0];
     if (!f) return;
+    if (f.size > 5 * 1024 * 1024) { toast('文件太大了，五兆以上先截一段'); e.target.value = ''; return; }
     var r = new FileReader();
     r.onload = function () {
-      try {
-        var arr = JSON.parse(r.result);
-        if (!Array.isArray(arr)) throw new Error('bad');
-        arr.forEach(function (x) {
-          if (typeof x === 'string' && x.trim()) mem.push({ cat: 'identity', text: x.trim() });
-          else if (x && x.text) mem.push({ cat: x.cat || x.kind || 'identity', text: String(x.text).trim() });
-        });
-        save(LS.mem, mem);
-        renderMem();
-        toast('导入了 ' + arr.length + ' 条');
-      } catch (err) { toast('文件读不了'); }
+      var parsed = [];
+      try { parsed = parseMemoryFile(r.result); } catch (err) { parsed = []; }
+      if (!parsed.length) { toast('这个文件里没读出东西'); e.target.value = ''; return; }
+      var added = 0, dup = 0;
+      for (var i = 0; i < parsed.length; i++) {
+        var p = parsed[i];
+        var seen = false;
+        for (var m = 0; m < mem.length; m++) { if (mem[m].text === p.text) { seen = true; break; } }
+        if (seen) { dup++; continue; }
+        mem.push(p);
+        added++;
+      }
+      save(LS.mem, mem);
+      renderMem();
+      toast('进来 ' + added + ' 条' + (dup ? '，重复 ' + dup + ' 条没加' : ''));
       e.target.value = '';
     };
+    r.onerror = function () { toast('文件读不了'); e.target.value = ''; };
     r.readAsText(f);
   });
 
