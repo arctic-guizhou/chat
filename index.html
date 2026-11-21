@@ -4,7 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="归舟">
 <meta name="theme-color" content="#fafafa">
+<link rel="apple-touch-icon" sizes="180x180" href="IMG_0621.png">
+<link rel="icon" type="image/png" href="IMG_0621.png">
 <title>归舟</title>
 <style>
   :root{
@@ -131,7 +135,7 @@
 <body>
 
 <header>
-  <h1 id="brand">归舟<span id="ver">v6</span></h1>
+  <h1 id="brand">归舟<span id="ver">v7</span></h1>
   <nav class="tabs">
     <button class="tab on" data-page="chat">对话</button>
     <button class="tab" data-page="win">窗口</button>
@@ -562,7 +566,6 @@
 
       d.appendChild(t);
       d.appendChild(acts);
-
       d.addEventListener('click', function () { openWindow(w.id); });
 
       box.appendChild(d);
