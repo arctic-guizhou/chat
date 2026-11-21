@@ -12,7 +12,7 @@
 .tkrow{display:flex;gap:9px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px;line-height:1.6;color:var(--sub)}
 .tkrow b{font-weight:400;color:var(--ink);opacity:.5;flex:none;font-size:11px;letter-spacing:.06em}
 
-/* 顶栏：iOS 分段控件那种手感 */
+/* 顶栏：五个都露，选中那块会滑 */
 .tabs{position:relative;gap:1px}
 .tabs .glider{
   position:absolute;top:0;left:0;border-radius:7px;background:var(--bg);
@@ -22,24 +22,10 @@
 }
 .tabs .glider.hide{opacity:0}
 .tabs .tab{
-  position:relative;z-index:1;background:none;box-shadow:none;
+  position:relative;z-index:1;padding:7px 9px;background:none;box-shadow:none;
   transition:color .24s ease,opacity .24s ease;
 }
 .tabs .tab.on{background:none;box-shadow:none;color:var(--ink)}
-
-/* 多的那两项：从旁边横着长出来，不是突然出现 */
-.more{
-  position:relative;z-index:1;flex:none;font:inherit;font-size:15px;line-height:1;
-  color:var(--sub);background:none;border:0;border-radius:7px;padding:6px 7px 8px;
-  transition:color .2s ease;
-}
-.more.act{color:var(--ink)}
-.more-tab{
-  max-width:0;opacity:0;overflow:hidden;white-space:nowrap;
-  padding-left:0;padding-right:0;
-  transition:max-width .34s cubic-bezier(.32,.72,0,1),opacity .22s ease,padding .34s cubic-bezier(.32,.72,0,1);
-}
-.tabs.open .more-tab{max-width:100px;opacity:1;padding-left:10px;padding-right:10px}
 
 /* 切页淡一下，别硬切 */
 .page.on{animation:gzFade .26s cubic-bezier(.32,.72,0,1)}
