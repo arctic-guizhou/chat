@@ -69,6 +69,7 @@
   @keyframes blink{50%{opacity:0}}
 
   #composer{border-top:1px solid var(--line);background:var(--bg);padding:9px 14px calc(9px + env(safe-area-inset-bottom))}
+  #composer.hide{display:none}
   .crow{display:flex;gap:9px;align-items:flex-end}
   #input{
     flex:1;font:inherit;font-size:16px;line-height:1.45;color:var(--ink);
@@ -130,7 +131,7 @@
 <body>
 
 <header>
-  <h1 id="brand">归舟<span id="ver">v5</span></h1>
+  <h1 id="brand">归舟<span id="ver">v6</span></h1>
   <nav class="tabs">
     <button class="tab on" data-page="chat">对话</button>
     <button class="tab" data-page="win">窗口</button>
@@ -209,7 +210,7 @@
   </section>
 </main>
 
-<div id="composer">
+<div id="composer" class="hide">
   <div id="chips"></div>
   <div id="attachmenu">
     <button id="pickimg">选图片</button>
@@ -424,6 +425,11 @@
   function showPage(name) {
     document.querySelectorAll('.tab').forEach(function (b) { b.classList.toggle('on', b.dataset.page === name); });
     document.querySelectorAll('.page').forEach(function (p) { p.classList.toggle('on', p.id === 'page-' + name); });
+    var c = $('composer');
+    if (c) {
+      if (name === 'chat') c.classList.remove('hide');
+      else c.classList.add('hide');
+    }
   }
 
   function escHtml(s) {
@@ -1420,6 +1426,7 @@
     } catch (err) { toast('连不上：' + err.message); }
   });
 
+  showPage('chat');
   renderChat();
   fillSettings();
   renderMem();
