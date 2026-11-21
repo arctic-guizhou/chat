@@ -1,4 +1,4 @@
-/* 顶栏：⋯ 横向展开 + 选中块滑动 */
+/* 顶栏：⋯ 点一下开、再点一下收，选中块会滑 */
 (function () {
   'use strict';
 
@@ -6,7 +6,6 @@
   if (!tabs) return;
   var btn = document.getElementById('moreBtn');
 
-  /* 选中块：先插进去，再让它跟着走 */
   var glider = document.createElement('span');
   glider.className = 'glider';
   tabs.insertBefore(glider, tabs.firstChild);
@@ -19,9 +18,20 @@
     return null;
   }
 
+  function mark() {
+    if (!btn) return;
+    var cur = currentTab();
+    var open = tabs.classList.contains('open');
+    btn.classList.toggle('act', open || !cur);
+  }
+
   function place(instant) {
     var el = currentTab();
-    if (!el) { glider.classList.add('hide'); return; }
+    if (!el) {
+      glider.classList.add('hide');
+      mark();
+      return;
+    }
     glider.classList.remove('hide');
     var tr = tabs.getBoundingClientRect();
     var r = el.getBoundingClientRect();
@@ -32,36 +42,35 @@
     if (instant) {
       requestAnimationFrame(function () { glider.style.transition = ''; });
     }
+    mark();
   }
 
   function shut() {
     tabs.classList.remove('open');
-    if (btn) btn.textContent = '⋯';
     place(false);
   }
 
   if (btn) {
     btn.addEventListener('click', function () {
       var open = tabs.classList.toggle('open');
-      btn.textContent = open ? '×' : '⋯';
-      setTimeout(function () { place(true); }, 20);
+      mark();
+      setTimeout(function () { place(false); }, 30);
+      if (!open) setTimeout(function () { place(false); }, 340);
     });
   }
 
-  /* 点了菜单里那两项，切完页就把菜单收回去 */
   tabs.addEventListener('click', function (e) {
     var t = e.target;
     if (t && t.classList && t.classList.contains('more-tab')) setTimeout(shut, 0);
   });
 
-  /* 点任何一个 tab，选中块就滑过去 */
   tabs.addEventListener('click', function () {
     setTimeout(function () { place(false); }, 0);
   });
 
   window.addEventListener('resize', function () { place(true); });
   window.addEventListener('orientationchange', function () {
-    setTimeout(function () { place(true); }, 200);
+    setTimeout(function () { place(true); }, 220);
   });
 
   setTimeout(function () { place(true); }, 40);
