@@ -78,6 +78,9 @@
     vertical-align:-2px;animation:blink .9s steps(2) infinite}
   @keyframes blink{50%{opacity:0}}
 
+  .carrynote{font-size:11px;color:var(--sub);letter-spacing:.06em;padding:0 0 18px;display:flex;align-items:center;gap:9px}
+  .carrynote::after{content:"";flex:1;height:1px;background:var(--line)}
+
   #composer{border-top:1px solid var(--line);background:var(--bg);padding:9px 14px calc(9px + env(safe-area-inset-bottom))}
   #composer.hide{display:none}
   .crow{display:flex;gap:9px;align-items:flex-end}
@@ -145,7 +148,7 @@
 <div id="errbar"></div>
 
 <header>
-  <h1 id="brand">归舟<span id="ver">v7.5</span></h1>
+  <h1 id="brand">归舟<span id="ver">v7.7</span></h1>
   <nav class="tabs">
     <button class="tab on" data-page="chat">对话</button>
     <button class="tab" data-page="win">窗口</button>
@@ -158,7 +161,7 @@
   <section class="page on" id="page-chat"><div id="msgs"></div></section>
 
   <section class="page" id="page-win">
-    <p class="hint">每个窗口自己一段对话，互不干扰。点新建的时候，会先把手上这个窗口扫一遍，值得留的变成记忆条目，然后再给你一个干净的。点哪一行，就进哪个窗口。</p>
+    <p class="hint">每个窗口自己一段对话，互不干扰。点新建的时候，会先把手上这个窗口扫一遍，值得留的变成记忆条目；最近几小时的原话也一起带过去，一句不改。带过去的话不占新窗口的位置，但在下面待着。</p>
     <div class="btns"><button class="btn solid" id="winnew">新建一个窗口</button></div>
     <div id="winlist" style="margin-top:22px"></div>
   </section>
@@ -318,6 +321,12 @@ window.addEventListener('unhandledrejection', function (e) {
   var CONDENSE_MAX = 5;
   var WB_SCAN_TAIL = 8;
 
+  /* 新窗口接手时往后带多少原话 */
+  var CARRY_HOURS = 6;
+  var CARRY_MAX = 24;
+  var CARRY_CHARS = 7000;
+  var CARRY_PIECE = 800;
+
   var TOOLS = [
     {
       type: 'function',
@@ -418,12 +427,13 @@ window.addEventListener('unhandledrejection', function (e) {
   if (!sessions.length) {
     var oldMsgs = load(LS.oldchat, []);
     var oldTotal = load(LS.oldtotal, 0);
-    sessions = [{ id: nid(), title: '', msgs: Array.isArray(oldMsgs) ? oldMsgs : [], total: typeof oldTotal === 'number' ? oldTotal : 0, t: Date.now() }];
+    sessions = [{ id: nid(), title: '', msgs: Array.isArray(oldMsgs) ? oldMsgs : [], total: typeof oldTotal === 'number' ? oldTotal : 0, t: Date.now(), carry: [] }];
   }
   for (var sj = 0; sj < sessions.length; sj++) {
     if (!Array.isArray(sessions[sj].msgs)) sessions[sj].msgs = [];
     if (typeof sessions[sj].total !== 'number') sessions[sj].total = 0;
     if (!sessions[sj].t) sessions[sj].t = Date.now();
+    if (!Array.isArray(sessions[sj].carry)) sessions[sj].carry = [];
   }
 
   var curId = load(LS.cur, '');
@@ -433,6 +443,7 @@ window.addEventListener('unhandledrejection', function (e) {
 
   var history = [];
   var total = 0;
+  var carry = [];
 
   function curSess() {
     for (var i = 0; i < sessions.length; i++) if (sessions[i].id === curId) return sessions[i];
@@ -444,12 +455,14 @@ window.addEventListener('unhandledrejection', function (e) {
     if (!Array.isArray(s.msgs)) s.msgs = [];
     history = s.msgs;
     total = typeof s.total === 'number' ? s.total : 0;
+    carry = Array.isArray(s.carry) ? s.carry : [];
   }
 
   function pushSession() {
     var s = curSess();
     s.msgs = history;
     s.total = total;
+    s.carry = carry;
     s.t = Date.now();
     var first = null;
     for (var i = 0; i < history.length; i++) { if (history[i] && history[i].role === 'user') { first = history[i]; break; } }
@@ -457,6 +470,28 @@ window.addEventListener('unhandledrejection', function (e) {
     var ok = save(LS.sessions, sessions);
     save(LS.cur, curId);
     if (!ok) toast('存不下了，去窗口列表删几个旧的');
+  }
+
+  /* 从旧窗口里挑最近几小时的原话，一句不改地带过去 */
+  function carryOf(sess) {
+    var h = (sess && sess.msgs) || [];
+    var cut = Date.now() - CARRY_HOURS * 3600 * 1000;
+    var picked = [];
+    for (var i = h.length - 1; i >= 0; i--) {
+      var m = h[i];
+      if (!m || !m.content) continue;
+      if (m.ts && m.ts < cut && picked.length) break;
+      picked.unshift({ role: (m.role === 'user' ? 'user' : 'assistant'), content: String(m.content).slice(0, CARRY_PIECE) });
+      if (picked.length >= CARRY_MAX) break;
+    }
+    var chars = 0;
+    var out = [];
+    for (var k = picked.length - 1; k >= 0; k--) {
+      chars += picked[k].content.length;
+      if (chars > CARRY_CHARS) break;
+      out.unshift(picked[k]);
+    }
+    return out;
   }
 
   pullSession();
@@ -562,6 +597,12 @@ window.addEventListener('unhandledrejection', function (e) {
 
   function renderChat() {
     msgsEl.innerHTML = '';
+    if (carry.length) {
+      var cn = document.createElement('div');
+      cn.className = 'carrynote';
+      cn.textContent = '接着上一个窗口 · 带了最近 ' + carry.length + ' 句原话';
+      msgsEl.appendChild(cn);
+    }
     if (!history.length) {
       var d = document.createElement('div');
       d.className = 'msg assistant';
@@ -604,7 +645,10 @@ window.addEventListener('unhandledrejection', function (e) {
       n.textContent = w.title || '空窗口';
       var sub = document.createElement('div');
       sub.className = 'sub';
-      sub.textContent = ((w.msgs || []).length) + ' 条 · ' + (w.total || 0).toLocaleString('en-US') + ' tokens' + (w.id === curId ? ' · 正在用' : '');
+      var bits = [(w.msgs || []).length + ' 条', (w.total || 0).toLocaleString('en-US') + ' tokens'];
+      if ((w.carry || []).length) bits.push('接了 ' + w.carry.length + ' 句');
+      if (w.id === curId) bits.push('正在用');
+      sub.textContent = bits.join(' · ');
       t.appendChild(n);
       t.appendChild(sub);
 
@@ -640,7 +684,7 @@ window.addEventListener('unhandledrejection', function (e) {
     for (var i = 0; i < sessions.length; i++) {
       if (sessions[i].id === id) { sessions.splice(i, 1); break; }
     }
-    if (!sessions.length) sessions.push({ id: nid(), title: '', msgs: [], total: 0, t: Date.now() });
+    if (!sessions.length) sessions.push({ id: nid(), title: '', msgs: [], total: 0, t: Date.now(), carry: [] });
     if (curId === id) { curId = sessions[0].id; pullSession(); renderChat(); }
     pushSession();
     renderWins();
@@ -725,6 +769,10 @@ window.addEventListener('unhandledrejection', function (e) {
     s += memBlock();
     s += wbBlock(haystack || '');
     s += pillBlock();
+    if (carry.length) {
+      s += '\n\n【这是接上一个窗口。下面紧接着的那些话是你们之前说的，一句没改，不是她刚说的。' +
+        '别把它们当成新消息去回应，当成你自己记得的事。】';
+    }
     return s;
   }
 
@@ -885,7 +933,8 @@ window.addEventListener('unhandledrejection', function (e) {
       winNewBtn.textContent = oldLabel;
     }
 
-    var fresh = { id: nid(), title: '', msgs: [], total: 0, t: Date.now() };
+    var keep = carryOf(prev);
+    var fresh = { id: nid(), title: '', msgs: [], total: 0, t: Date.now(), carry: keep };
     sessions.push(fresh);
     curId = fresh.id;
     pullSession();
@@ -893,6 +942,7 @@ window.addEventListener('unhandledrejection', function (e) {
     renderWins();
     save(LS.cur, curId);
     showPage('chat');
+    if (keep.length) toast('带了 ' + keep.length + ' 句原话过来');
   });
 
   async function requestRound(route, messages, signal, onDelta) {
@@ -976,6 +1026,16 @@ window.addEventListener('unhandledrejection', function (e) {
     return { text: text, usage: usage, toolCalls: tlist };
   }
 
+  function buildMessages(tail) {
+    var pre = [];
+    for (var i = 0; i < carry.length; i++) {
+      var c = carry[i];
+      if (!c || !c.content) continue;
+      pre.push({ role: (c.role === 'user' ? 'user' : 'assistant'), content: c.content });
+    }
+    return [{ role: 'system', content: systemContent(tail) }].concat(pre).concat(history.map(toApiMsg));
+  }
+
   async function ask(userMsg) {
     var img = (userMsg && userMsg.img) || '';
     var aEl = addMsgEl('assistant', '');
@@ -990,7 +1050,7 @@ window.addEventListener('unhandledrejection', function (e) {
     var toolsUsed = [];
 
     var tail = history.slice(-WB_SCAN_TAIL).map(function (m) { return String((m && m.content) || ''); }).join('\n');
-    var messages = [{ role: 'system', content: systemContent(tail) }].concat(history.map(toApiMsg));
+    var messages = buildMessages(tail);
 
     controller = new AbortController();
     setBusy(true);
@@ -1027,7 +1087,7 @@ window.addEventListener('unhandledrejection', function (e) {
 
       if (!acc.trim()) {
         aEl.txt.textContent = '（没收到内容）';
-        history.push({ role: 'assistant', content: '（没收到内容）' });
+        history.push({ role: 'assistant', content: '（没收到内容）', ts: Date.now() });
       } else {
         var finalText = applyRx(acc);
         aEl.txt.innerHTML = mdToHtml(finalText);
@@ -1041,7 +1101,7 @@ window.addEventListener('unhandledrejection', function (e) {
         }
         var note = toolsUsed.length ? ('动过记忆：' + toolsUsed.join('、')) : '';
         if (note) addMeta(aEl.root, note);
-        history.push({ role: 'assistant', content: finalText, tokens: info, note: note });
+        history.push({ role: 'assistant', content: finalText, tokens: info, note: note, ts: Date.now() });
       }
 
       slimHistory();
@@ -1053,7 +1113,7 @@ window.addEventListener('unhandledrejection', function (e) {
         if (acc.trim()) {
           var stopped = applyRx(acc);
           aEl.txt.innerHTML = mdToHtml(stopped);
-          history.push({ role: 'assistant', content: stopped });
+          history.push({ role: 'assistant', content: stopped, ts: Date.now() });
           slimHistory();
           pushSession();
           addMeta(aEl.root, '已停止');
@@ -1092,7 +1152,7 @@ window.addEventListener('unhandledrejection', function (e) {
     autoGrow();
     clearPending();
 
-    history.push({ role: 'user', content: content, img: img });
+    history.push({ role: 'user', content: content, img: img, ts: Date.now() });
     addMsgEl('user', content, img);
     scrollBottom();
 
@@ -1478,6 +1538,7 @@ window.addEventListener('unhandledrejection', function (e) {
     if (!confirm('清空这个窗口？其他窗口和记忆都不动。')) return;
     history = [];
     total = 0;
+    carry = [];
     pushSession();
     renderChat();
     showPage('chat');
