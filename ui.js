@@ -1,4 +1,4 @@
-/* 顶栏选中块 + 窗口改名（长按行才出来） */
+/* 顶栏选中块 + 窗口改名（左滑才出来） */
 (function () {
   'use strict';
 
@@ -46,12 +46,13 @@
     window.addEventListener('load', function () { place(true); });
   }
 
-  /* ---------- 窗口改名 ---------- */
+  /* ---------- 窗口：左滑露出改名 / 删 ---------- */
   var box = document.getElementById('winlist');
   if (!box) return;
 
   var KEY_S = 'gz_sessions_v1';
   var KEY_A = 'gz_alias_v1';
+  var SLOT = 96;
 
   function loadJSON(k, d) {
     try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; }
@@ -69,9 +70,28 @@
     return (a && typeof a === 'object') ? a : {};
   }
 
+  function parts(row) {
+    return { txt: row.querySelector('.txt'), acts: row.querySelector('.acts') };
+  }
+
+  function settle(row, open) {
+    var p = parts(row);
+    if (!p.txt || !p.acts) return;
+    p.txt.style.transform = open ? 'translateX(-' + SLOT + 'px)' : '';
+    p.acts.style.transform = open ? 'translateX(0)' : '';
+    if (open) row.dataset.gzOpen = '1'; else delete row.dataset.gzOpen;
+  }
+
+  function closeAll(except) {
+    var rows = box.querySelectorAll('.win');
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i] !== except && rows[i].dataset.gzOpen) settle(rows[i], false);
+    }
+  }
+
   function addBtn(row, id, nameEl, truth) {
-    var acts = row.querySelector('.acts');
-    if (!acts || acts.querySelector('.ren')) return;
+    var p = parts(row);
+    if (!p.acts || p.acts.querySelector('.ren')) return;
     var b = document.createElement('button');
     b.className = 'ren';
     b.textContent = '改名';
@@ -85,80 +105,122 @@
       if (name) al[id] = name; else delete al[id];
       saveJSON(KEY_A, al);
       nameEl.textContent = name || truth;
-      row.classList.remove('showacts');
+      settle(row, false);
     });
-    acts.appendChild(b);
+    p.acts.appendChild(b);
   }
 
-  /* 长按一行，右边才冒出「改名 / 删」；点别处收回去 */
-  function bindPress(row) {
-    if (row.dataset.gzPress) return;
-    row.dataset.gzPress = '1';
-    var timer = null;
+  function bindSwipe(row) {
+    if (row.dataset.gzSwipe) return;
+    row.dataset.gzSwipe = '1';
 
-    function cancel() {
-      clearTimeout(timer);
-      timer = null;
+    var startX = 0, startY = 0, base = 0, cur = 0;
+    var dragging = false, decided = false, leaked = false;
+
+    function paint(v) {
+      var p = parts(row);
+      if (!p.txt || !p.acts) return;
+      p.txt.style.transform = 'translateX(' + v + 'px)';
+      p.acts.style.transform = 'translateX(' + (SLOT + v) + 'px)';
     }
-    function start(e) {
+
+    function freeze() {
+      var p = parts(row);
+      if (p.txt) p.txt.style.transition = 'none';
+      if (p.acts) p.acts.style.transition = 'none';
+    }
+
+    function thaw() {
+      var p = parts(row);
+      if (p.txt) p.txt.style.transition = '';
+      if (p.acts) p.acts.style.transition = '';
+    }
+
+    row.addEventListener('touchstart', function (e) {
       if (e.target && e.target.closest && e.target.closest('.acts')) return;
-      cancel();
-      timer = setTimeout(function () {
-        timer = null;
-        var all = box.querySelectorAll('.win.showacts');
-        for (var i = 0; i < all.length; i++) all[i].classList.remove('showacts');
-        row.classList.add('showacts');
-        try { if (navigator.vibrate) navigator.vibrate(8); } catch (err) {}
-      }, 550);
+      closeAll(row);
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      base = row.dataset.gzOpen ? -SLOT : 0;
+      cur = base;
+      dragging = true;
+      decided = false;
+      leaked = false;
+      freeze();
+    }, { passive: true });
+
+    row.addEventListener('touchmove', function (e) {
+      if (!dragging) return;
+      var dx = e.touches[0].clientX - startX;
+      var dy = e.touches[0].clientY - startY;
+      if (!decided) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        if (Math.abs(dy) >= Math.abs(dx)) {
+          dragging = false;
+          thaw();
+          return;
+        }
+        decided = true;
+        leaked = true;
+      }
+      var v = base + dx;
+      if (v > 0) v = 0;
+      if (v < -SLOT) v = -SLOT;
+      cur = v;
+      paint(v);
+      if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+
+    function end() {
+      if (!dragging && !decided) return;
+      dragging = false;
+      thaw();
+      if (decided) settle(row, cur < -SLOT * 0.4);
+      decided = false;
     }
+    row.addEventListener('touchend', end);
+    row.addEventListener('touchcancel', end);
 
-    row.addEventListener('pointerdown', start, { passive: true });
-    row.addEventListener('pointermove', cancel, { passive: true });
-    row.addEventListener('pointerup', cancel, { passive: true });
-    row.addEventListener('pointercancel', cancel, { passive: true });
-    row.addEventListener('pointerleave', cancel, { passive: true });
-
-    /* 冒出来的时候，点行本身不算打开窗口 */
     row.addEventListener('click', function (e) {
-      if (!row.classList.contains('showacts')) return;
-      if (e.target && e.target.closest && e.target.closest('.acts')) return;
-      e.stopPropagation();
-      e.preventDefault();
-      row.classList.remove('showacts');
+      if (leaked) {
+        e.stopPropagation();
+        e.preventDefault();
+        leaked = false;
+        return;
+      }
+      if (row.dataset.gzOpen) {
+        if (e.target && e.target.closest && e.target.closest('.acts')) return;
+        e.stopPropagation();
+        e.preventDefault();
+        settle(row, false);
+      }
     }, true);
   }
 
-  var busy = false;
   function decorate() {
-    if (busy) return;
-    busy = true;
-    try {
-      var list = sortedSessions();
-      var rows = box.querySelectorAll('.win');
-      if (!rows.length || rows.length !== list.length) return;
-      var al = readAlias();
-      for (var i = 0; i < rows.length; i++) {
-        var row = rows[i];
-        var nameEl = row.querySelector('.name');
-        if (!nameEl) return;
-        var truth = list[i].title || '空窗口';
-        var alias = al[list[i].id];
-        if (nameEl.textContent !== truth && nameEl.textContent !== alias) return;
-        if (alias) nameEl.textContent = alias;
-        addBtn(row, list[i].id, nameEl, truth);
-        bindPress(row);
-      }
-    } finally {
-      busy = false;
+    var list = sortedSessions();
+    var rows = box.querySelectorAll('.win');
+    if (!rows.length || rows.length !== list.length) return;
+    var al = readAlias();
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      var nameEl = row.querySelector('.name');
+      if (!nameEl) return;
+      var truth = list[i].title || '空窗口';
+      var alias = al[list[i].id];
+      if (nameEl.textContent !== truth && nameEl.textContent !== alias) return;
+      if (alias) nameEl.textContent = alias;
+      addBtn(row, list[i].id, nameEl, truth);
+      bindSwipe(row);
     }
   }
 
-  document.addEventListener('click', function (e) {
-    var all = box.querySelectorAll('.win.showacts');
-    for (var i = 0; i < all.length; i++) {
-      if (!all[i].contains(e.target)) all[i].classList.remove('showacts');
+  document.addEventListener('touchstart', function (e) {
+    var rows = box.querySelectorAll('.win');
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].dataset.gzOpen && !rows[i].contains(e.target)) settle(rows[i], false);
     }
-  });
+  }, { passive: true });
 
   var timer = null;
   function schedule() {
