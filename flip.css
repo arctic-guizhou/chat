@@ -1,0 +1,33 @@
+/* 翻牌：两张一对，配上了就锁住 */
+.flipwrap{margin-top:30px}
+.fliphead{
+  font-size:11px;letter-spacing:.18em;color:var(--sub);
+  margin:0 0 10px;display:flex;align-items:center;gap:9px;
+}
+.fliphead::after{content:"";flex:1;height:1px;background:var(--line)}
+.flipgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.fcard{
+  position:relative;aspect-ratio:1/1;border:0;padding:0;background:none;
+  perspective:700px;-webkit-tap-highlight-color:transparent;
+}
+.fcard .inner{
+  position:absolute;inset:0;border-radius:10px;
+  transform-style:preserve-3d;-webkit-transform-style:preserve-3d;
+  transition:transform .42s cubic-bezier(.32,.72,0,1);
+}
+.fcard.up .inner{transform:rotateY(180deg)}
+.fcard .face{
+  position:absolute;inset:0;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  text-align:center;padding:4px;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+}
+.fcard .back{background:var(--fill);color:var(--sub);font-size:15px;letter-spacing:.1em}
+.fcard .front{
+  background:var(--bg);border:1px solid var(--line);color:var(--ink);
+  font-size:13px;line-height:1.25;transform:rotateY(180deg);
+}
+.fcard.done .front{border-color:var(--ink);opacity:.5}
+.fcard.done .back{opacity:.5}
+.flipsay{margin:14px 0 0;min-height:22px;font-size:12.5px;line-height:1.65;color:var(--sub)}
+.flipstep{margin:6px 0 0;font-size:10.5px;color:var(--sub);opacity:.7;letter-spacing:.04em}
