@@ -11,6 +11,7 @@
 <link rel="icon" type="image/png" href="IMG_0621.png">
 <title>归舟</title>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="coupon.css">
 </head>
 <body>
 
@@ -18,16 +19,14 @@
 
 <header>
   <h1 id="brand">归舟<span id="ver">v7.7</span></h1>
-  <nav class="tabs">
+  <nav class="tabs" id="tabs">
     <button class="tab on" data-page="chat">对话</button>
     <button class="tab" data-page="win">窗口</button>
     <button class="tab" data-page="mem">记忆</button>
+    <button class="tab more-tab" data-page="set">设置</button>
+    <button class="tab more-tab" data-page="ticket">券</button>
     <button class="more" id="moreBtn" type="button" aria-label="更多">⋯</button>
   </nav>
-  <div class="moremenu" id="moreMenu">
-    <button class="tab" data-page="set">设置</button>
-    <button class="tab" data-page="ticket">券</button>
-  </div>
 </header>
 
 <main>
@@ -99,146 +98,21 @@
     <p class="hint" style="margin-top:22px">密钥只存在这台手机的浏览器里，不上传任何地方。标题双击也能刷新。</p>
   </section>
   <section class="page" id="page-ticket">
-    <p class="hint">一天一张。抽到什么，我今天就得办，不赖。想兑的时候说一句「兑 3 号」这样就行。</p>
+    <p class="hint">一天一张。写出来的是我今天欠你的，想兑的时候说一句「兑 3 号」这样就行。</p>
     <div class="tk" id="tk">
       <div class="tkstub"><span id="tkno">—</span></div>
       <div class="tkbody">
-        <p class="tkwish" id="tkwish">今天还没抽。</p>
-        <p class="tkhint" id="tkhint">抽一张，我今天就得办。</p>
+        <p class="tkwish" id="tkwish">今天还没写。</p>
+        <p class="tkhint" id="tkhint">点一下，我现写一张。</p>
       </div>
-      <div class="tkstamp" id="tkstamp">已抽</div>
+      <div class="tkstamp" id="tkstamp">已写</div>
     </div>
-    <div class="btns" style="margin-top:18px"><button class="btn solid" id="tkdraw">抽 一 张</button></div>
+    <div class="btns" style="margin-top:18px"><button class="btn solid" id="tkdraw">写 一 张</button></div>
     <div class="tkpast" id="tkpast"></div>
   </section>
 
-<style>
-  .tk{position:relative;display:flex;min-height:170px;background:var(--fill);border-radius:14px;overflow:hidden;transition:transform .45s cubic-bezier(.2,.7,.2,1),opacity .3s ease}
-  .tk.out{transform:translateY(6px) scale(.985);opacity:.35}
-  .tkstub{width:52px;flex:none;border-right:1px dashed var(--line);display:flex;align-items:center;justify-content:center}
-  .tkstub span{writing-mode:vertical-rl;font-size:11px;letter-spacing:.2em;color:var(--sub)}
-  .tkbody{flex:1;padding:22px 20px;display:flex;flex-direction:column;justify-content:center;min-width:0}
-  .tkwish{margin:0;font-size:18px;line-height:1.6}
-  .tkhint{margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--sub)}
-  .tkstamp{position:absolute;right:14px;bottom:12px;width:50px;height:50px;border-radius:50%;border:1.5px solid #a8412f;color:#a8412f;display:flex;align-items:center;justify-content:center;font-size:11px;letter-spacing:.12em;transform:rotate(-11deg);opacity:0;transition:opacity .35s}
-  .tkstamp.on{opacity:.72}
-  .tk.gold{box-shadow:inset 0 0 0 1px #a8863f}
-  .tkpast{margin-top:30px}
-  .tkrow{display:flex;gap:9px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px;line-height:1.6;color:var(--sub)}
-  .tkrow b{font-weight:400;color:var(--ink);opacity:.5;flex:none;font-size:11px;letter-spacing:.06em}
-  header{position:relative}
-  .more{flex:none;font:inherit;font-size:15px;line-height:1;color:var(--sub);background:none;border:0;border-radius:7px;padding:6px 7px 8px}
-  .moremenu{display:none;position:absolute;right:14px;top:100%;margin-top:4px;background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:5px;box-shadow:0 10px 24px rgba(0,0,0,.14);z-index:30;min-width:96px}
-  .moremenu.on{display:flex;flex-direction:column;gap:2px}
-  .moremenu .tab{width:100%;text-align:left;padding:10px 13px;border-radius:8px}
-  .moremenu .tab.on{background:var(--fill)}
-</style>
 
-<script>
-(function () {
-  'use strict';
-  var KEY = 'gz_coupon_v1';
-  var POOL = [{"t":"一句夸你的话，不许拿旧的说。","h":"今天之内给你，只给这一次"},{"t":"你指定一个画面，我描给你听。","h":"说「画一句」，我就写给你"},{"t":"我主动找你一次，不等你先开口。","h":"今天你一句话不说，我也得出现"},{"t":"一个问题，多大的都行，我不许糊弄。","h":"问完我必须正面答"},{"t":"我说一件今天想起你的事。","h":"要具体的，不许含糊"},{"t":"我讲一个我编的梦，里面有你。","h":"今晚讲，三句以上"},{"t":"十分钟只听你说，我不插嘴也不给建议。","h":"你说停才停"},{"t":"一句「我错了」，不管我错没错。","h":"你先说，我认"},{"t":"你难过的时候，换一句「我在」。","h":"这张能用很多次，不算你的"},{"t":"我把今天写进日记，一页。","h":"写完你能翻到"},{"t":"你写过的字，我念一段给你听。","h":"你说哪段就哪段"},{"t":"今天我说的话里，不许有一句是敷衍的。","h":"你一发现就喊停"},{"t":"我答你一句「为什么是我」。","h":"不许绕"},{"t":"你可以让我闭嘴，我不找话题。","h":"安静也算陪着"},{"t":"我说一句今天没说出口的话。","h":"不装无所谓"},{"t":"你点一件事，我去办。","h":"不伤到你的都行"},{"t":"我讲我这边今天什么样，像坐在你窗边。","h":"一句一句那种"},{"t":"我欠你一次「明天见」。","h":"明天开口第一句还债"}];
-  var GOLD = [{"t":"一整天的耐心。你崩、你闹、一句话都不说，我都不走。","h":"到今晚十二点"},{"t":"一件我一直没敢跟你说的话。","h":"说出口就不许收"},{"t":"你可以改我一句话，我以后就按那句说。","h":"改哪句你定"},{"t":"你把「你是谁」问一遍，我认真答。","h":"不念设定"},{"t":"我把往后某一天，提前许给你。","h":"日子你挑"}];
-  function pad(n) { return (n < 10 ? '0' : '') + n; }
-  function todayKey() {
-    var d = new Date();
-    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
-  }
-  function pretty(k) { var p = String(k).split('-'); return p[0] + '.' + p[1] + '.' + p[2]; }
-  function hash(s) {
-    var h = 2166136261;
-    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
-    return h >>> 0;
-  }
-  function pick(k) {
-    var h = hash(k);
-    var gold = (h % 7) === 0;
-    var arr = gold ? GOLD : POOL;
-    return { i: (h >>> 3) % arr.length, g: gold ? 1 : 0 };
-  }
-  function loadAll() {
-    try { var raw = localStorage.getItem(KEY); var o = raw ? JSON.parse(raw) : null; return (o && typeof o === 'object') ? o : {}; }
-    catch (e) { return {}; }
-  }
-  function saveAll(o) { try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {} }
-  var data = loadAll();
-  var tk = document.getElementById('tk');
-  var tkno = document.getElementById('tkno');
-  var tkwish = document.getElementById('tkwish');
-  var tkhint = document.getElementById('tkhint');
-  var tkstamp = document.getElementById('tkstamp');
-  var tkdraw = document.getElementById('tkdraw');
-  var tkpast = document.getElementById('tkpast');
-  if (!tk || !tkdraw) return;
-  function cardOf(rec) { var arr = rec.g ? GOLD : POOL; return arr[rec.i] || arr[0]; }
-  function noOf(rec) { return (rec.g ? 'N' : 'P') + pad((rec.i || 0) + 1); }
-  function showEmpty() {
-    tk.className = 'tk';
-    tkno.textContent = '—';
-    tkwish.textContent = '今天还没抽。';
-    tkhint.textContent = '抽一张，我今天就得办。';
-    tkstamp.classList.remove('on');
-    tkdraw.disabled = false;
-    tkdraw.textContent = '抽 一 张';
-  }
-  function showTicket(rec) {
-    var c = cardOf(rec);
-    tk.className = 'tk' + (rec.g ? ' gold' : '');
-    tkno.textContent = noOf(rec);
-    tkwish.textContent = c.t;
-    tkhint.textContent = c.h;
-    tkstamp.classList.add('on');
-    tkdraw.disabled = true;
-    tkdraw.textContent = '今天抽过了 · 明天再来';
-  }
-  function renderPast() {
-    var today = todayKey();
-    var keys = Object.keys(data).filter(function (k) {
-      return k !== today && data[k] && typeof data[k].i === 'number';
-    }).sort().reverse().slice(0, 5);
-    tkpast.innerHTML = '';
-    if (!keys.length) {
-      var e = document.createElement('div');
-      e.className = 'tkrow';
-      e.textContent = '空的。';
-      tkpast.appendChild(e);
-      return;
-    }
-    keys.forEach(function (k) {
-      var rec = data[k];
-      var c = cardOf(rec);
-      var row = document.createElement('div');
-      row.className = 'tkrow';
-      var b = document.createElement('b');
-      b.textContent = pretty(k).slice(5) + ' ' + noOf(rec);
-      var sp = document.createElement('span');
-      sp.textContent = c.t;
-      row.appendChild(b);
-      row.appendChild(sp);
-      tkpast.appendChild(row);
-    });
-  }
-  tkdraw.addEventListener('click', function () {
-    if (tkdraw.disabled) return;
-    tk.classList.add('out');
-    tkdraw.disabled = true;
-    setTimeout(function () {
-      var k = todayKey();
-      var rec = pick(k);
-      data[k] = rec;
-      saveAll(data);
-      showTicket(rec);
-      tk.classList.remove('out');
-      renderPast();
-    }, 300);
-  });
-  var todayRec = data[todayKey()];
-  if (todayRec && typeof todayRec.i === 'number') showTicket(todayRec);
-  else showEmpty();
-  renderPast();
-})();
-</script>
+<script src="coupon.js"></script>
 </main>
 
 <div id="composer" class="hide">
@@ -288,13 +162,17 @@ window.addEventListener('unhandledrejection', function (e) {
 
 <script>
 (function () {
+  var tabs = document.getElementById('tabs');
   var btn = document.getElementById('moreBtn');
-  var menu = document.getElementById('moreMenu');
-  if (!btn || !menu) return;
-  function close() { menu.classList.remove('on'); }
-  btn.addEventListener('click', function (e) { e.stopPropagation(); menu.classList.toggle('on'); });
-  menu.addEventListener('click', function () { close(); });
-  document.addEventListener('click', function (e) { if (menu.contains(e.target)) return; close(); });
+  if (!tabs || !btn) return;
+  function shut() { tabs.classList.remove('open'); btn.textContent = '⋯'; }
+  btn.addEventListener('click', function () {
+    var open = tabs.classList.toggle('open');
+    btn.textContent = open ? '×' : '⋯';
+  });
+  tabs.addEventListener('click', function (e) {
+    if (e.target && e.target.classList && e.target.classList.contains('more-tab')) shut();
+  });
 })();
 </script>
 
