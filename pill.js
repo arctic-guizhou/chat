@@ -2,10 +2,16 @@
 (function () {
   'use strict';
 
-  var REPO = 'ceshihaox-dotcom/pilulier';
-  var PATH = 'pills/pills.json';
-  var BRANCHES = ['main', 'master'];
   var KEY = 'gz_pill_v1';
+
+  /* 药方的源，按顺序试。国内 raw.githubusercontent.com 经常连不上，所以先走镜像。 */
+  var SOURCES = [
+    'https://fastly.jsdelivr.net/gh/ceshihaox-dotcom/pilulier@main/pills/pills.json',
+    'https://gcore.jsdelivr.net/gh/ceshihaox-dotcom/pilulier@main/pills/pills.json',
+    'https://cdn.jsdelivr.net/gh/ceshihaox-dotcom/pilulier@main/pills/pills.json',
+    'https://testingcf.jsdelivr.net/gh/ceshihaox-dotcom/pilulier@main/pills/pills.json',
+    'https://raw.githubusercontent.com/ceshihaox-dotcom/pilulier/main/pills/pills.json'
+  ];
 
   var items = [];
   var state = 'idle';
@@ -133,7 +139,6 @@
   var foot = root.querySelector('#pbFoot');
   var capEl = root.querySelector('#pbCap');
   var rx = pdx.querySelector('#pdxRx');
-  var curPick = null;
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>]/g, function (c) {
@@ -163,11 +168,9 @@
 
   function closeDetail() {
     pdx.classList.remove('open');
-    curPick = null;
   }
 
   function openDetail(p) {
-    curPick = p;
     rx.innerHTML = '<div class="pdx-h"><span class="r">' + esc(p.code) + '</span><b>' + esc(p.name) + '</b>' +
       '<i>' + (cur() && cur().code === p.code ? '在服' : '') + '</i></div>' +
       '<div class="pdx-body">' + esc(p.text || '（这颗还没写药方）') + '</div>' +
@@ -216,14 +219,13 @@
   }
 
   function tryFetch(i) {
-    if (i >= BRANCHES.length) {
+    if (i >= SOURCES.length) {
       state = 'error';
-      errMsg = '没取到药方：仓库连不上。';
+      errMsg = '药方没取到：这几个地址都连不上。';
       renderGrid();
       return;
     }
-    var url = 'https://raw.githubusercontent.com/' + REPO + '/' + BRANCHES[i] + '/' + PATH;
-    fetch(url, { cache: 'no-store' })
+    fetch(SOURCES[i], { cache: 'no-store' })
       .then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.json();
@@ -231,16 +233,14 @@
       .then(function (j) {
         var arr = (j && j.items) || [];
         if (!Array.isArray(arr)) arr = [];
+        if (!arr.length) throw new Error('empty');
         items = arr.filter(function (x) { return x && (x.code || x.id); });
         items.forEach(function (x) { if (!x.code) x.code = x.id; });
         state = 'ready';
         renderGrid();
       })
-      .catch(function (e) {
-        if (i + 1 < BRANCHES.length) { tryFetch(i + 1); return; }
-        state = 'error';
-        errMsg = '没取到药方：' + (e && e.message ? e.message : e);
-        renderGrid();
+      .catch(function () {
+        tryFetch(i + 1);
       });
   }
 
