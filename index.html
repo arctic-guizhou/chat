@@ -206,7 +206,7 @@
 
     <div class="sep"></div>
     <p class="title">正 则 替 换</p>
-    <p class="hint">在我输出的字上过一遍，专治机味。写法是 JS 正则。</p>
+    <p class="hint">在我输出的字上过一遍，专治机味。写法是 JS 正则。一开始摆着的四条不想要就点关，删了就回不来了。</p>
     <div id="rxlist"></div>
     <div class="row" style="margin-top:16px"><label>匹配</label><input id="rxfrom" placeholder="\\u2014\\u2014" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
     <div class="row"><label>换成</label><input id="rxto" placeholder="，" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
@@ -415,8 +415,16 @@ window.addEventListener('unhandledrejection', function (e) {
 
   var wb = load(LS.wb, []);
   if (!Array.isArray(wb)) wb = [];
-  var rx = load(LS.rx, []);
-  if (!Array.isArray(rx)) rx = [];
+
+  /* 一开始就摆着的几条，治机味。不想要就点关；删了不会自己长回来 */
+  var RX_DEFAULT = [
+    { from: '——', to: '，', on: true },
+    { from: '\\*\\*', to: '', on: true },
+    { from: '(?:首先|其次|最后|总之|综上所述)，', to: '', on: true },
+    { from: '[\\uD800-\\uDBFF][\\uDC00-\\uDFFF]', to: '', on: true }
+  ];
+  var rx = load(LS.rx, null);
+  if (!Array.isArray(rx)) rx = RX_DEFAULT.slice();
 
   function nid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
