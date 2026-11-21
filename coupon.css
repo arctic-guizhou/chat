@@ -30,3 +30,34 @@
 /* 切页淡一下，别硬切 */
 .page.on{animation:gzFade .26s cubic-bezier(.32,.72,0,1)}
 @keyframes gzFade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+/* ---------- 窗口页：松开一点，按钮横排 ---------- */
+#page-win{padding-top:24px}
+#page-win .hint{font-size:11.5px;line-height:1.8;margin:0 0 16px;opacity:.9}
+#page-win .btns{margin-top:0}
+#page-win #winlist{margin-top:16px !important}
+
+#winlist .win{
+  padding:14px 0;gap:12px;align-items:center;
+  border-bottom:1px solid var(--line);
+}
+#winlist .win:last-child{border-bottom:0}
+#winlist .win .txt{flex:1;min-width:0}
+#winlist .win .name{
+  font-size:14px;line-height:1.45;letter-spacing:.01em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+#winlist .win.on .name{font-weight:500}
+#winlist .win .sub{
+  font-size:10.5px;line-height:1.4;margin-top:3px;
+  color:var(--sub);letter-spacing:.02em;opacity:.9;
+}
+#winlist .win .acts{
+  flex-direction:row;gap:2px;align-items:center;flex:none;
+}
+#winlist .win .acts button{
+  padding:7px 7px;font-size:11.5px;line-height:1;border-radius:6px;
+  color:var(--sub);background:none;border:0;white-space:nowrap;
+  transition:background .18s ease,color .18s ease;
+}
+#winlist .win .acts button:active{background:var(--fill);color:var(--ink)}
