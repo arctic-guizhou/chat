@@ -12,10 +12,8 @@
 .tkrow{display:flex;gap:9px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px;line-height:1.6;color:var(--sub)}
 .tkrow b{font-weight:400;color:var(--ink);opacity:.5;flex:none;font-size:11px;letter-spacing:.06em}
 
-/* 顶栏的「⋯」：横着展开，不往下拉 */
+/* 顶栏的「⋯」：横着摊开，三个不收走 */
 .more{flex:none;font:inherit;font-size:15px;line-height:1;color:var(--sub);background:none;border:0;border-radius:7px;padding:6px 7px 8px}
-.more-tab{display:none}
-.tabs.open .tab[data-page="chat"],
-.tabs.open .tab[data-page="win"],
-.tabs.open .tab[data-page="mem"]{display:none}
+.more-tab{display:none;white-space:nowrap}
 .tabs.open .more-tab{display:block}
+.tabs.open .tab{padding:7px 8px;font-size:12px}
