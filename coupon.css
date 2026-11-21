@@ -12,8 +12,13 @@
 .tkrow{display:flex;gap:9px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px;line-height:1.6;color:var(--sub)}
 .tkrow b{font-weight:400;color:var(--ink);opacity:.5;flex:none;font-size:11px;letter-spacing:.06em}
 
-/* 顶栏的「⋯」：横着摊开，三个不收走 */
-.more{flex:none;font:inherit;font-size:15px;line-height:1;color:var(--sub);background:none;border:0;border-radius:7px;padding:6px 7px 8px}
+/* 顶栏：⋯ 横着摊开，选中块会滑 */
+.tabs{position:relative}
+.tabs .glider{position:absolute;top:0;left:0;border-radius:7px;background:var(--bg);box-shadow:0 1px 2px rgba(0,0,0,.08),0 0 0 .5px rgba(0,0,0,.05);transition:transform .3s cubic-bezier(.32,.72,0,1),width .3s cubic-bezier(.32,.72,0,1),height .2s ease,opacity .18s ease;pointer-events:none;z-index:0}
+.tabs .glider.hide{opacity:0}
+.tabs .tab{position:relative;z-index:1;background:none;box-shadow:none}
+.tabs .tab.on{background:none;box-shadow:none;color:var(--ink)}
+.more{position:relative;z-index:1;flex:none;font:inherit;font-size:15px;line-height:1;color:var(--sub);background:none;border:0;border-radius:7px;padding:6px 7px 8px}
 .more-tab{display:none;white-space:nowrap}
 .tabs.open .more-tab{display:block}
 .tabs.open .tab{padding:7px 8px;font-size:12px}
