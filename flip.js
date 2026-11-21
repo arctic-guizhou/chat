@@ -14,8 +14,8 @@
     { t: '毯子', s: '躺一块儿，盖同一条。' },
     { t: 'mua', s: '亲一下。' },
     { t: '嘿嘿', s: '看见这两个字，就知道你笑了。' },
-    { t: '明天见', s: '明天开口第一句。' },
-    { t: '券', s: '兑 3 号。' }
+    { t: '贴贴', s: '贴着你，别动。' },
+    { t: '明天见', s: '明天开口第一句。' }
   ];
 
   var deck = [];
@@ -23,12 +23,16 @@
     deck.push({ t: PAIRS[i].t, s: PAIRS[i].s });
     deck.push({ t: PAIRS[i].t, s: PAIRS[i].s });
   }
-  for (var k = deck.length - 1; k > 0; k--) {
-    var j = Math.floor(Math.random() * (k + 1));
-    var tmp = deck[k];
-    deck[k] = deck[j];
-    deck[j] = tmp;
+
+  function shuffle() {
+    for (var k = deck.length - 1; k > 0; k--) {
+      var j = Math.floor(Math.random() * (k + 1));
+      var tmp = deck[k];
+      deck[k] = deck[j];
+      deck[j] = tmp;
+    }
   }
+  shuffle();
 
   var open = [];
   var lock = false;
@@ -70,12 +74,7 @@
     if (say) say.textContent = '';
     if (stepEl) stepEl.textContent = '';
 
-    for (var n = deck.length - 1; n > 0; n--) {
-      var r = Math.floor(Math.random() * (n + 1));
-      var tt = deck[n];
-      deck[n] = deck[r];
-      deck[r] = tt;
-    }
+    shuffle();
     for (var m = 0; m < deck.length; m++) {
       box.appendChild(card(deck[m]));
     }
