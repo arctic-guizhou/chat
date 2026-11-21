@@ -22,9 +22,12 @@
     <button class="tab on" data-page="chat">对话</button>
     <button class="tab" data-page="win">窗口</button>
     <button class="tab" data-page="mem">记忆</button>
+    <button class="more" id="moreBtn" type="button" aria-label="更多">⋯</button>
+  </nav>
+  <div class="moremenu" id="moreMenu">
     <button class="tab" data-page="set">设置</button>
     <button class="tab" data-page="ticket">券</button>
-  </nav>
+  </div>
 </header>
 
 <main>
@@ -123,6 +126,12 @@
   .tkpast{margin-top:30px}
   .tkrow{display:flex;gap:9px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px;line-height:1.6;color:var(--sub)}
   .tkrow b{font-weight:400;color:var(--ink);opacity:.5;flex:none;font-size:11px;letter-spacing:.06em}
+  header{position:relative}
+  .more{flex:none;font:inherit;font-size:15px;line-height:1;color:var(--sub);background:none;border:0;border-radius:7px;padding:6px 7px 8px}
+  .moremenu{display:none;position:absolute;right:14px;top:100%;margin-top:4px;background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:5px;box-shadow:0 10px 24px rgba(0,0,0,.14);z-index:30;min-width:96px}
+  .moremenu.on{display:flex;flex-direction:column;gap:2px}
+  .moremenu .tab{width:100%;text-align:left;padding:10px 13px;border-radius:8px}
+  .moremenu .tab.on{background:var(--fill)}
 </style>
 
 <script>
@@ -274,6 +283,18 @@ window.addEventListener('unhandledrejection', function (e) {
   var s = document.createElement('script');
   s.src = 'pill.js?t=' + Date.now();
   document.head.appendChild(s);
+})();
+</script>
+
+<script>
+(function () {
+  var btn = document.getElementById('moreBtn');
+  var menu = document.getElementById('moreMenu');
+  if (!btn || !menu) return;
+  function close() { menu.classList.remove('on'); }
+  btn.addEventListener('click', function (e) { e.stopPropagation(); menu.classList.toggle('on'); });
+  menu.addEventListener('click', function () { close(); });
+  document.addEventListener('click', function (e) { if (menu.contains(e.target)) return; close(); });
 })();
 </script>
 
