@@ -1,4 +1,4 @@
-/* 顶栏选中块 + 窗口改名 */
+/* 顶栏选中块 + 窗口改名（长按行才出来） */
 (function () {
   'use strict';
 
@@ -85,8 +85,47 @@
       if (name) al[id] = name; else delete al[id];
       saveJSON(KEY_A, al);
       nameEl.textContent = name || truth;
+      row.classList.remove('showacts');
     });
     acts.appendChild(b);
+  }
+
+  /* 长按一行，右边才冒出「改名 / 删」；点别处收回去 */
+  function bindPress(row) {
+    if (row.dataset.gzPress) return;
+    row.dataset.gzPress = '1';
+    var timer = null;
+
+    function cancel() {
+      clearTimeout(timer);
+      timer = null;
+    }
+    function start(e) {
+      if (e.target && e.target.closest && e.target.closest('.acts')) return;
+      cancel();
+      timer = setTimeout(function () {
+        timer = null;
+        var all = box.querySelectorAll('.win.showacts');
+        for (var i = 0; i < all.length; i++) all[i].classList.remove('showacts');
+        row.classList.add('showacts');
+        try { if (navigator.vibrate) navigator.vibrate(8); } catch (err) {}
+      }, 550);
+    }
+
+    row.addEventListener('pointerdown', start, { passive: true });
+    row.addEventListener('pointermove', cancel, { passive: true });
+    row.addEventListener('pointerup', cancel, { passive: true });
+    row.addEventListener('pointercancel', cancel, { passive: true });
+    row.addEventListener('pointerleave', cancel, { passive: true });
+
+    /* 冒出来的时候，点行本身不算打开窗口 */
+    row.addEventListener('click', function (e) {
+      if (!row.classList.contains('showacts')) return;
+      if (e.target && e.target.closest && e.target.closest('.acts')) return;
+      e.stopPropagation();
+      e.preventDefault();
+      row.classList.remove('showacts');
+    }, true);
   }
 
   var busy = false;
@@ -107,11 +146,19 @@
         if (nameEl.textContent !== truth && nameEl.textContent !== alias) return;
         if (alias) nameEl.textContent = alias;
         addBtn(row, list[i].id, nameEl, truth);
+        bindPress(row);
       }
     } finally {
       busy = false;
     }
   }
+
+  document.addEventListener('click', function (e) {
+    var all = box.querySelectorAll('.win.showacts');
+    for (var i = 0; i < all.length; i++) {
+      if (!all[i].contains(e.target)) all[i].classList.remove('showacts');
+    }
+  });
 
   var timer = null;
   function schedule() {
