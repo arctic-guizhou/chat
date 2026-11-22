@@ -79,7 +79,7 @@
   background-size:cover;background-position:center;background-repeat:no-repeat;
 }
 #page-chat.hasbg .bgshade{
-  position:absolute;inset:0;background:var(--bg);opacity:.8;
+  position:absolute;inset:0;background:var(--bg);opacity:.93;
   pointer-events:none;z-index:0;
 }
 #page-chat.hasbg #msgs{position:relative;z-index:1}
