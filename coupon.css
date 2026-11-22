@@ -16,6 +16,7 @@
 body{font-size:var(--gz-fs,15px)}
 
 /* ===== 顶栏：五个都露，选中那块会滑 ===== */
+header{position:relative;z-index:2}
 .tabs{position:relative;gap:0}
 .tabs .glider{
   position:absolute;top:0;left:0;border-radius:7px;background:var(--bg);
@@ -30,9 +31,9 @@ body{font-size:var(--gz-fs,15px)}
 }
 .tabs .tab.on{background:none;box-shadow:none;border:0;color:var(--ink)}
 
-/* ===== 切页淡一下 ===== */
-.page.on{animation:gzFade .26s cubic-bezier(.32,.72,0,1)}
-@keyframes gzFade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+/* ===== 切页只淡，不移位（免得 fixed 层跟着跑） ===== */
+.page.on{animation:gzFade .26s ease}
+@keyframes gzFade{from{opacity:0}to{opacity:1}}
 
 /* ===== 窗口页 ===== */
 #page-win{padding-top:22px}
@@ -76,15 +77,19 @@ body{font-size:var(--gz-fs,15px)}
 }
 #winlist .win .acts button:active{background:var(--fill);color:var(--ink)}
 
-/* ===== 聊天背景：不盖底色，花纹平铺 ===== */
-#page-chat.hasbg{
-  position:relative;
-  background-size:100% auto;
-  background-repeat:repeat;
-  background-position:top center;
+/* ===== 聊天背景：一张图铺满整屏，不重复 ===== */
+#page-chat.hasbg{position:relative;background:none}
+#page-chat.hasbg .bgshade{
+  display:block;
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+  pointer-events:none;
+  z-index:0;
 }
-#page-chat.hasbg .bgshade{display:none}
 #page-chat.hasbg #msgs{position:relative;z-index:1}
+#composer{position:relative;z-index:2}
 .bgprev{
   width:100%;height:130px;border-radius:10px;border:1px solid var(--line);
   background-color:var(--fill);background-size:cover;background-position:center;background-repeat:no-repeat;
