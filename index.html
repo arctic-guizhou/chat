@@ -11,7 +11,7 @@
 <link rel="icon" type="image/png" href="IMG_0621.png">
 <title>归舟</title>
 <link rel="stylesheet" href="style.css?v=9.5">
-<link rel="stylesheet" href="coupon.css?v=9.5">
+<link rel="stylesheet" href="coupon.css?v=10.1">
 <link rel="stylesheet" href="flip.css?v=9.6">
 </head>
 <body>
@@ -95,6 +95,17 @@
       <button class="btn" id="reload">重新加载这一版</button>
       <button class="btn" id="clear">清空这个窗口</button>
     </div>
+
+    <div class="sep"></div>
+    <p class="title">聊 天 背 景</p>
+    <div class="bgprev" id="bgprev">还没有图</div>
+    <div class="btns">
+      <button class="btn solid" id="bgpick">选一张图</button>
+      <button class="btn" id="bgclear">清掉</button>
+    </div>
+    <p class="hint" style="margin-top:12px">图只存在这台手机里，存之前会先压小。聊天的时候图片上面会盖一层底色，字才不会看不清。</p>
+    <input type="file" id="bgfile" accept="image/*" style="display:none">
+
     <p class="hint" style="margin-top:22px">密钥只存在这台手机的浏览器里，不上传任何地方。标题双击也能刷新。</p>
   </section>
   <section class="page" id="page-ticket">
@@ -118,11 +129,9 @@
     </div>
   </section>
 
-
 <script src="coupon.js?v=9.5"></script>
 <script src="flip.js?v=9.8"></script>
 <script src="export.js?v=9.9"></script>
-<script src="bg.js?v=10.0"></script>
 </main>
 
 <div id="composer" class="hide">
@@ -173,5 +182,7 @@ window.addEventListener('unhandledrejection', function (e) {
 <script src="ui.js?v=9.5"></script>
 
 <script src="app.js?v=9.5"></script>
+
+<script src="bg.js?v=10.1"></script>
 </body>
 </html>
