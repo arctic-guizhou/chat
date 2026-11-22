@@ -11,7 +11,7 @@
 <link rel="icon" type="image/png" href="IMG_0621.png">
 <title>归舟</title>
 <link rel="stylesheet" href="style.css?v=9.5">
-<link rel="stylesheet" href="coupon.css?v=10.5">
+<link rel="stylesheet" href="coupon.css?v=10.6">
 <link rel="stylesheet" href="flip.css?v=9.6">
 </head>
 <body>
@@ -103,7 +103,13 @@
       <button class="btn" id="fsm">中</button>
       <button class="btn" id="fsl">大</button>
     </div>
-    <p class="hint" style="margin-top:12px">只改正文的大小，输入框不动。</p>
+    <p class="hint" style="margin-top:12px">上面三个是字号，只改正文大小。</p>
+    <div class="btns" style="margin-top:14px">
+      <button class="btn solid" id="fpick">选字体文件</button>
+      <button class="btn" id="fclear">用回系统字</button>
+    </div>
+    <p class="hint" id="fname" style="margin-top:12px">现在用的是系统的字。</p>
+    <input type="file" id="ffile" accept=".ttf,.otf,.woff,.woff2" style="display:none">
 
     <div class="sep"></div>
     <p class="title">聊 天 背 景</p>
@@ -192,6 +198,6 @@ window.addEventListener('unhandledrejection', function (e) {
 
 <script src="app.js?v=9.5"></script>
 
-<script src="bg.js?v=10.5"></script>
+<script src="bg.js?v=10.6"></script>
 </body>
 </html>
