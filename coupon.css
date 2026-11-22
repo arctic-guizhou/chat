@@ -1,4 +1,4 @@
-/* 券 · 一天一张 */
+/* ===== 券 ===== */
 .tk{position:relative;display:flex;min-height:170px;background:var(--fill);border-radius:14px;overflow:hidden;transition:transform .45s cubic-bezier(.2,.7,.2,1),opacity .3s ease}
 .tk.out{transform:translateY(6px) scale(.985);opacity:.35}
 .tkstub{width:52px;flex:none;border-right:1px dashed var(--line);display:flex;align-items:center;justify-content:center}
@@ -12,7 +12,7 @@
 .tkrow{display:flex;gap:9px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px;line-height:1.6;color:var(--sub)}
 .tkrow b{font-weight:400;color:var(--ink);opacity:.5;flex:none;font-size:11px;letter-spacing:.06em}
 
-/* 顶栏：五个都露，选中那块会滑；不画任何线条 */
+/* ===== 顶栏：五个都露，选中那块会滑 ===== */
 .tabs{position:relative;gap:0}
 .tabs .glider{
   position:absolute;top:0;left:0;border-radius:7px;background:var(--bg);
@@ -27,11 +27,11 @@
 }
 .tabs .tab.on{background:none;box-shadow:none;border:0;color:var(--ink)}
 
-/* 切页淡一下，别硬切 */
+/* ===== 切页淡一下 ===== */
 .page.on{animation:gzFade .26s cubic-bezier(.32,.72,0,1)}
 @keyframes gzFade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 
-/* ---------- 窗口页：行里只留名字，往左划才出操作 ---------- */
+/* ===== 窗口页 ===== */
 #page-win{padding-top:22px}
 #page-win .hint{font-size:11.5px;line-height:1.8;margin:0 0 14px;opacity:.85}
 #page-win .btns{margin-top:0}
@@ -58,7 +58,6 @@
   color:var(--sub);letter-spacing:.02em;opacity:.85;
 }
 
-/* 那格操作平时停在行外面，左边一划就滑进来 */
 #winlist .win .acts{
   position:absolute;right:0;top:0;bottom:0;width:96px;
   display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:0;
@@ -73,3 +72,21 @@
   transition:opacity .18s ease,background .18s ease;
 }
 #winlist .win .acts button:active{background:var(--fill);color:var(--ink)}
+
+/* ===== 聊天背景 ===== */
+#page-chat.hasbg{
+  position:relative;
+  background-size:cover;background-position:center;background-repeat:no-repeat;
+}
+#page-chat.hasbg .bgshade{
+  position:absolute;inset:0;background:var(--bg);opacity:.8;
+  pointer-events:none;z-index:0;
+}
+#page-chat.hasbg #msgs{position:relative;z-index:1}
+.bgprev{
+  width:100%;height:130px;border-radius:10px;border:1px solid var(--line);
+  background-color:var(--fill);background-size:cover;background-position:center;background-repeat:no-repeat;
+  margin:0 0 12px;display:flex;align-items:center;justify-content:center;
+  font-size:12px;color:var(--sub);
+}
+.bgprev.has{color:transparent}
