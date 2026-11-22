@@ -11,7 +11,7 @@
 <link rel="icon" type="image/png" href="IMG_0621.png">
 <title>归舟</title>
 <link rel="stylesheet" href="style.css?v=9.5">
-<link rel="stylesheet" href="coupon.css?v=10.3">
+<link rel="stylesheet" href="coupon.css?v=10.4">
 <link rel="stylesheet" href="flip.css?v=9.6">
 </head>
 <body>
@@ -97,13 +97,22 @@
     </div>
 
     <div class="sep"></div>
+    <p class="title">字 体</p>
+    <div class="btns">
+      <button class="btn" id="fss">小</button>
+      <button class="btn" id="fsm">中</button>
+      <button class="btn" id="fsl">大</button>
+    </div>
+    <p class="hint" style="margin-top:12px">只改正文的大小，输入框不动。</p>
+
+    <div class="sep"></div>
     <p class="title">聊 天 背 景</p>
     <div class="bgprev" id="bgprev">还没有图</div>
     <div class="btns">
       <button class="btn solid" id="bgpick">选一张图</button>
       <button class="btn" id="bgclear">清掉</button>
     </div>
-    <p class="hint" style="margin-top:12px">图只存在这台手机里，存之前会先压小。现在是不盖底色的，整张图都露着。</p>
+    <p class="hint" style="margin-top:12px">图只存在这台手机里，存之前会先压小。花纹是一片片铺下去的，不盖底色。</p>
     <input type="file" id="bgfile" accept="image/*" style="display:none">
 
     <p class="hint" style="margin-top:22px">密钥只存在这台手机的浏览器里，不上传任何地方。标题双击也能刷新。</p>
@@ -183,6 +192,6 @@ window.addEventListener('unhandledrejection', function (e) {
 
 <script src="app.js?v=9.5"></script>
 
-<script src="bg.js?v=10.3"></script>
+<script src="bg.js?v=10.4"></script>
 </body>
 </html>
