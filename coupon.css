@@ -12,6 +12,9 @@
 .tkrow{display:flex;gap:9px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px;line-height:1.6;color:var(--sub)}
 .tkrow b{font-weight:400;color:var(--ink);opacity:.5;flex:none;font-size:11px;letter-spacing:.06em}
 
+/* ===== 正文字号（设置里能改） ===== */
+body{font-size:var(--gz-fs,15px)}
+
 /* ===== 顶栏：五个都露，选中那块会滑 ===== */
 .tabs{position:relative;gap:0}
 .tabs .glider{
@@ -73,10 +76,12 @@
 }
 #winlist .win .acts button:active{background:var(--fill);color:var(--ink)}
 
-/* ===== 聊天背景：不盖任何底色，图整张露出来 ===== */
+/* ===== 聊天背景：不盖底色，花纹平铺 ===== */
 #page-chat.hasbg{
   position:relative;
-  background-size:cover;background-position:center;background-repeat:no-repeat;
+  background-size:100% auto;
+  background-repeat:repeat;
+  background-position:top center;
 }
 #page-chat.hasbg .bgshade{display:none}
 #page-chat.hasbg #msgs{position:relative;z-index:1}
