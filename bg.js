@@ -11,14 +11,21 @@
   var input = document.getElementById('bgfile');
 
   if (chat && prev && pick && clr && input) {
+    var shade = document.querySelector('#page-chat .bgshade');
+    if (!shade) {
+      shade = document.createElement('div');
+      shade.className = 'bgshade';
+      chat.insertBefore(shade, chat.firstChild);
+    }
+
     function apply(url) {
       if (!url) {
         chat.classList.remove('hasbg');
-        chat.style.backgroundImage = '';
+        if (shade) shade.style.backgroundImage = '';
         return;
       }
       chat.classList.add('hasbg');
-      chat.style.backgroundImage = 'url("' + url + '")';
+      if (shade) shade.style.backgroundImage = 'url("' + url + '")';
     }
 
     function paint(url) {
