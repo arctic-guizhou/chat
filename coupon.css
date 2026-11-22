@@ -12,8 +12,11 @@
 .tkrow{display:flex;gap:9px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px;line-height:1.6;color:var(--sub)}
 .tkrow b{font-weight:400;color:var(--ink);opacity:.5;flex:none;font-size:11px;letter-spacing:.06em}
 
-/* ===== 正文字号（设置里能改） ===== */
-body{font-size:var(--gz-fs,15px)}
+/* ===== 正文：字号和字体都能换 ===== */
+body{
+  font-size:var(--gz-fs,15px);
+  font-family:var(--gz-font,-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif);
+}
 
 /* ===== 顶栏：五个都露，选中那块会滑 ===== */
 header{position:relative;z-index:2}
